@@ -1,0 +1,111 @@
+export type Rarity = 'normal' | 'rare' | 'epic' | 'legendary' | 'transcendent';
+
+export type Difficulty = 'normal' | 'hard' | 'nightmare' | 'hell';
+
+export type EquipmentSlotType = 'weapon' | 'shihakusho' | 'accessory';
+
+export interface WeaponData {
+  id: string;
+  name: string;
+  user: string;
+  description: string;
+  baseAtk: number;
+  critChanceBonus: number; // e.g. 0.05 for +5%
+  spdBonus: number;        // e.g. 0.08 for +8%
+  specialEffectName: string;
+}
+
+export interface Equipment {
+  instanceId: string;
+  weaponId: string;
+  name: string;
+  rarity: Rarity;
+  slot: EquipmentSlotType;
+  atk: number;
+  hp: number;
+  def: number;
+  critChance: number;
+  spdBonus: number;
+  sellPrice: number;
+}
+
+export interface SkillData {
+  id: string;
+  name: string;
+  character: string;
+  slotType: 1 | 2; // Slot 1 = Active / Hado, Slot 2 = Bankai / Ultimate
+  rarity: Rarity;
+  description: string;
+  cooldownSec: number;
+  durationSec?: number; // Para buffs / bankais com duração
+  damageMultiplier: number; // e.g. 2.5 for 250%
+  stunSec?: number;
+  lifestealPct?: number; // e.g. 0.15 for 15%
+  atkBuffPct?: number;
+  spdBuffPct?: number;
+  defBuffPct?: number;
+}
+
+export interface OwnedSkill {
+  skillId: string;
+  level: number;
+  unlocked: boolean;
+}
+
+export interface Enemy {
+  id: string;
+  name: string;
+  maxHp: number;
+  currentHp: number;
+  atk: number;
+  def: number;
+  expReward: number;
+  goldReward: number;
+  isBoss: boolean;
+  avatarUrl?: string;
+}
+
+export interface Biome {
+  id: string;
+  name: string;
+  japaneseName: string;
+  description: string;
+  bgGradient: string;
+  enemies: {
+    name: string;
+    hpBase: number;
+    atkBase: number;
+    defBase: number;
+    expBase: number;
+    goldBase: number;
+  }[];
+  boss: {
+    name: string;
+    hpBase: number;
+    atkBase: number;
+    defBase: number;
+    expBase: number;
+    goldBase: number;
+  };
+}
+
+export interface CharacterStats {
+  level: number;
+  exp: number;
+  nextLevelExp: number;
+  statPoints: number;
+  baseAtk: number;
+  baseDef: number;
+  baseHp: number;
+  baseSpd: number; // ataques por segundo (e.g. 1.0)
+  reiryoku: number; // Gold
+  soulOrbs: number; // Moeda Premium
+  prestigeRank: number; // Quantidade de Hogyoku Fragments
+}
+
+export interface BattleLogMessage {
+  id: string;
+  text: string;
+  type: 'player_attack' | 'enemy_attack' | 'skill' | 'loot' | 'system' | 'victory';
+  timestamp: string;
+}

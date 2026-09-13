@@ -5,8 +5,8 @@ import { StatsPanel } from './components/StatsPanel';
 import { InventoryPanel } from './components/InventoryPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { GachaShopPanel } from './components/GachaShopPanel';
-import { BiomeSelectorPanel } from './components/BiomeSelectorPanel';
-import { Swords, Shield, ShoppingBag, Sparkles, Map, RefreshCw } from 'lucide-react';
+import { WorldMapPanel } from './components/WorldMapPanel';
+import { Swords, Shield, ShoppingBag, Sparkles, MapPin, RefreshCw } from 'lucide-react';
 
 type Tab = 'battle' | 'stats' | 'inventory' | 'skills' | 'shop' | 'biomes';
 
@@ -61,7 +61,7 @@ export const App: React.FC = () => {
         {activeTab === 'inventory' && <InventoryPanel />}
         {activeTab === 'skills' && <SkillsPanel />}
         {activeTab === 'shop' && <GachaShopPanel />}
-        {activeTab === 'biomes' && <BiomeSelectorPanel />}
+        {activeTab === 'biomes' && <WorldMapPanel />}
       </main>
 
       {/* Navegação por Abas Inferiores (Mobile First / HUD Taskbar) */}
@@ -123,8 +123,8 @@ export const App: React.FC = () => {
               activeTab === 'biomes' ? 'bg-teal-950 text-teal-400 border border-teal-500/50' : 'text-gray-400 hover:text-white'
             }`}
           >
-            <Map size={18} />
-            <span>Mundus</span>
+            <MapPin size={18} />
+            <span>Mapa</span>
           </button>
         </div>
       </nav>

@@ -40,7 +40,7 @@ export const BattleScreen: React.FC = () => {
         </div>
         <div className="flex sm:flex-col justify-between items-center sm:items-end">
           <div className="text-sm font-semibold text-gray-300">
-            Estágio: <span className="text-amber-400 font-bold text-base">{biomeStage} / 5</span>
+            Estágio: <span className="text-amber-400 font-bold text-base">{biomeStage} / 10</span>
           </div>
           {!isFightingBoss && (
             <button

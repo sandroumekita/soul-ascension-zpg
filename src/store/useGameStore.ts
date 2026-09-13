@@ -9,8 +9,10 @@ interface GameState {
   stats: CharacterStats;
   currentBiomeId: string;
   difficulty: Difficulty;
-  biomeStage: number; // 1 to 5, 5 is Boss
+  biomeStage: number; // 1 to 10 (10 is Boss)
   isFightingBoss: boolean;
+  unlockedBiomes: string[];
+  unlockedDifficulties: Difficulty[];
   
   // Current Combat
   currentEnemy: Enemy | null;
@@ -133,7 +135,7 @@ const spawnEnemyForBiome = (biomeId: string, diff: Difficulty, stage: number, is
   const biome = BIOMES_CATALOG.find((b) => b.id === biomeId) || BIOMES_CATALOG[0];
   const diffMultiplier = diff === 'normal' ? 1.0 : diff === 'hard' ? 3.5 : diff === 'nightmare' ? 12.0 : 50.0;
   
-  if (isBoss) {
+  if (isBoss || stage === 10) {
     const b = biome.boss;
     const maxHp = Math.round(b.hpBase * diffMultiplier);
     return {
@@ -143,8 +145,8 @@ const spawnEnemyForBiome = (biomeId: string, diff: Difficulty, stage: number, is
       currentHp: maxHp,
       atk: Math.round(b.atkBase * diffMultiplier),
       def: Math.round(b.defBase * diffMultiplier),
-      expReward: Math.round(b.expBase * diffMultiplier),
-      goldReward: Math.round(b.goldBase * diffMultiplier),
+      expReward: Math.round(b.expBase * diffMultiplier * 2.5),
+      goldReward: Math.round(b.goldBase * diffMultiplier * 2.5),
       isBoss: true,
     };
   }
@@ -172,6 +174,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   difficulty: 'normal',
   biomeStage: 1,
   isFightingBoss: false,
+  unlockedBiomes: ['karakura'],
+  unlockedDifficulties: ['normal'],
 
   currentEnemy: spawnEnemyForBiome('karakura', 'normal', 1, false),
   playerCurrentHp: 100,
@@ -320,12 +324,16 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
       }
 
-      // Generate Loot (20% Chance on regular, 100% on Boss)
+      // Generate Loot (4% Chance on regular enemies, 100% on Bosses)
       let newInventory = [...state.inventory];
-      if (enemy.isBoss || Math.random() < 0.2) {
+      if (enemy.isBoss || Math.random() < 0.04) {
         const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
         const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
-        const rarityWeights = enemy.isBoss ? [0.1, 0.4, 0.3, 0.15, 0.05] : [0.6, 0.25, 0.1, 0.04, 0.01];
+        
+        // Taxas de raridade muito mais desafiadoras e valiosas
+        const rarityWeights = enemy.isBoss 
+          ? [0.45, 0.35, 0.15, 0.04, 0.01]   // Boss: 45% Normal, 35% Raro, 15% Épico, 4% Lendário, 1% Transcendente
+          : [0.80, 0.15, 0.04, 0.009, 0.001]; // Normal: 80% Normal, 15% Raro, 4% Épico, 0.9% Lendário, 0.1% Transcendente
         
         const rand = Math.random();
         let cumulative = 0;
@@ -364,29 +372,77 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       // Progress Stage
       let nextStage = state.biomeStage;
-      let nextIsBoss = state.isFightingBoss;
-      if (state.isFightingBoss) {
-        nextIsBoss = false;
-        nextStage = 1;
+      let nextIsBoss = false;
+      let nextBiomeId = state.currentBiomeId;
+      let newUnlockedBiomes = [...state.unlockedBiomes];
+      let newUnlockedDiffs = [...state.unlockedDifficulties];
+
+      if (enemy.isBoss || state.biomeStage === 10) {
+        // VENCEU O BOSS DO BIOMA!
         logsToAdd.push({
           id: `log_boss_win_${Date.now()}`,
-          text: `🏆 BOSS DERROTADO! Você conquistou o Bioma na dificuldade ${state.difficulty.toUpperCase()}!`,
+          text: `🏆 BOSS DERROTADO! Você concluiu as 10 Fases de ${state.currentBiomeId.toUpperCase()}!`,
           type: 'victory',
           timestamp: new Date().toLocaleTimeString(),
         });
+
+        // Encontra o index do bioma atual
+        const currentBiomeIdx = BIOMES_CATALOG.findIndex((b) => b.id === state.currentBiomeId);
+        if (currentBiomeIdx < BIOMES_CATALOG.length - 1) {
+          // Desbloqueia e avança para o próximo bioma
+          const nextBiomeObj = BIOMES_CATALOG[currentBiomeIdx + 1];
+          nextBiomeId = nextBiomeObj.id;
+          nextStage = 1;
+          if (!newUnlockedBiomes.includes(nextBiomeId)) {
+            newUnlockedBiomes.push(nextBiomeId);
+          }
+          logsToAdd.push({
+            id: `log_unlock_biome_${Date.now()}`,
+            text: `🔓 NOVO BIOMA DESBLOQUEADO: Avançando para ${nextBiomeObj.name}!`,
+            type: 'system',
+            timestamp: new Date().toLocaleTimeString(),
+          });
+        } else {
+          // VENCEU O ÚLTIMO BIOMA (PALÁCIO REAL - AIZEN)!
+          nextStage = 10; // Fica na fase 10 do último bioma
+          nextIsBoss = true;
+
+          // Desbloqueia a próxima Dificuldade Global
+          const diffsOrder: Difficulty[] = ['normal', 'hard', 'nightmare', 'hell'];
+          const currentDiffIdx = diffsOrder.indexOf(state.difficulty);
+          if (currentDiffIdx < diffsOrder.length - 1) {
+            const nextDiff = diffsOrder[currentDiffIdx + 1];
+            if (!newUnlockedDiffs.includes(nextDiff)) {
+              newUnlockedDiffs.push(nextDiff);
+              logsToAdd.push({
+                id: `log_unlock_diff_${Date.now()}`,
+                text: `🔥 DIFICULDADE DESBLOQUEADA! A dificuldade ${nextDiff.toUpperCase()} agora está acessível!`,
+                type: 'victory',
+                timestamp: new Date().toLocaleTimeString(),
+              });
+            }
+          }
+        }
       } else {
-        nextStage = Math.min(5, state.biomeStage + 1);
+        // Avanço normal de fase (1 -> 2 -> ... -> 9 -> 10)
+        nextStage = state.biomeStage + 1;
+        if (nextStage === 10) {
+          nextIsBoss = true;
+        }
       }
 
-      const nextEnemy = spawnEnemyForBiome(state.currentBiomeId, state.difficulty, nextStage, nextIsBoss);
+      const nextEnemy = spawnEnemyForBiome(nextBiomeId, state.difficulty, nextStage, nextIsBoss);
 
       set({
         stats: newStats,
         inventory: newInventory,
+        currentBiomeId: nextBiomeId,
         biomeStage: nextStage,
         isFightingBoss: nextIsBoss,
+        unlockedBiomes: newUnlockedBiomes,
+        unlockedDifficulties: newUnlockedDiffs,
         currentEnemy: nextEnemy,
-        playerCurrentHp: calc.hp, // Full Heal on victory
+        playerCurrentHp: calc.hp, // Full Heal na vitória
         playerMaxHp: calc.hp,
         skill1Cooldown: newSkill1Cd,
         skill2Cooldown: newSkill2Cd,
@@ -397,18 +453,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    // --- PLAYER DEFEATED (AUTO-RECUO) ---
+    // --- PLAYER DEFEATED (AUTO-RECUO PARA A FASE 9 SE FOR NO BOSS) ---
     if (newPlayerHp <= 0) {
+      const fallbackStage = state.biomeStage === 10 ? 9 : Math.max(1, state.biomeStage - 1);
       logsToAdd.push({
         id: `log_defeat_${Date.now()}`,
-        text: `💀 Seu Shinigami recuou para recuperar o HP. Voltando ao Estágio 1...`,
+        text: `💀 Seu Shinigami recuou para recuperar o HP. Voltando para a Fase ${fallbackStage}...`,
         type: 'system',
         timestamp: new Date().toLocaleTimeString(),
       });
 
-      const nextEnemy = spawnEnemyForBiome(state.currentBiomeId, state.difficulty, 1, false);
+      const nextEnemy = spawnEnemyForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
       set({
-        biomeStage: 1,
+        biomeStage: fallbackStage,
         isFightingBoss: false,
         currentEnemy: nextEnemy,
         playerCurrentHp: calc.hp,
@@ -575,9 +632,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   challengeBoss: () => {
     const { currentBiomeId, difficulty } = get();
     set({
-      biomeStage: 5,
+      biomeStage: 10,
       isFightingBoss: true,
-      currentEnemy: spawnEnemyForBiome(currentBiomeId, difficulty, 5, true),
+      currentEnemy: spawnEnemyForBiome(currentBiomeId, difficulty, 10, true),
     });
   },
 

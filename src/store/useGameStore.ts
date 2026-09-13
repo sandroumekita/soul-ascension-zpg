@@ -52,7 +52,7 @@ interface GameState {
   
   // Actions & Utilities
   tick: (deltaTimeSec: number) => void;
-  allocateStatPoint: (stat: 'atk' | 'def' | 'hp' | 'spd') => void;
+  allocateStatPoint: (stat: 'atk' | 'def' | 'hp' | 'spd', amount?: number) => void;
   equipItem: (item: Equipment) => void;
   autoEquipBestWeapon: () => void;
   unequipSlot: (slot: 'weapon' | 'shihakusho' | 'accessory') => void;
@@ -540,24 +540,26 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // ---------------- ACTIONS ----------------
-  allocateStatPoint: (stat: 'atk' | 'def' | 'hp' | 'spd') => {
+  allocateStatPoint: (stat: 'atk' | 'def' | 'hp' | 'spd', amount = 1) => {
     const { stats } = get();
     if (stats.statPoints <= 0) return;
+
+    const pointsToUse = Math.min(stats.statPoints, Math.max(1, amount));
 
     let newBaseAtk = stats.baseAtk;
     let newBaseDef = stats.baseDef;
     let newBaseHp = stats.baseHp;
     let newBaseSpd = stats.baseSpd;
 
-    if (stat === 'atk') newBaseAtk += 4;
-    if (stat === 'def') newBaseDef += 2;
-    if (stat === 'hp') newBaseHp += 25;
-    if (stat === 'spd') newBaseSpd += 0.05;
+    if (stat === 'atk') newBaseAtk += 4 * pointsToUse;
+    if (stat === 'def') newBaseDef += 2 * pointsToUse;
+    if (stat === 'hp') newBaseHp += 25 * pointsToUse;
+    if (stat === 'spd') newBaseSpd += 0.05 * pointsToUse;
 
     set({
       stats: {
         ...stats,
-        statPoints: stats.statPoints - 1,
+        statPoints: stats.statPoints - pointsToUse,
         baseAtk: newBaseAtk,
         baseDef: newBaseDef,
         baseHp: newBaseHp,

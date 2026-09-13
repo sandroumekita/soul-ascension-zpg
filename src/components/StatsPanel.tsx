@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { GAME_THEME } from '../config/themeConfig';
-import { Shield, Zap, Heart, Activity, PlusCircle, Coins, Gem, Sparkles, Award, Swords, Flame } from 'lucide-react';
+import { Shield, Zap, Heart, Activity, PlusCircle, Coins, Gem, Sparkles, Award, Swords, Flame, ChevronsUp } from 'lucide-react';
 
 export const StatsPanel: React.FC = () => {
   const { stats, equippedWeapon, allocateStatPoint } = useGameStore();
+  const [allocStep, setAllocStep] = useState<number | 'MAX'>(1);
 
   const expPct = Math.max(0, Math.min(100, (stats.exp / stats.nextLevelExp) * 100));
 
@@ -13,6 +14,15 @@ export const StatsPanel: React.FC = () => {
   const totalAtk = stats.baseAtk + weaponAtk;
   const critPct = (equippedWeapon ? equippedWeapon.critChance * 100 : 5);
   const calculatedDps = Math.round(totalAtk * stats.baseSpd);
+
+  // Calcula a quantidade exata de pontos que serão investidos ao clicar no botão
+  const getPointsToAllocate = (): number => {
+    if (stats.statPoints <= 0) return 0;
+    if (allocStep === 'MAX') return stats.statPoints;
+    return Math.min(stats.statPoints, allocStep);
+  };
+
+  const currentPointsStep = getPointsToAllocate();
 
   return (
     <div className="bg-slate-900/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-5 shadow-2xl backdrop-blur-md">
@@ -89,17 +99,38 @@ export const StatsPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Alerta / Banner de Pontos de Atributo Disponíveis */}
-      <div className={`p-4 rounded-xl border backdrop-blur-md flex justify-between items-center transition ${stats.statPoints > 0 ? 'bg-gradient-to-r from-amber-950/80 via-red-950/80 to-amber-950/80 border-amber-400 shadow-lg animate-pulse' : 'bg-black/40 border-white/10'}`}>
+      {/* Alerta / Banner de Pontos de Atributo Disponíveis com Seletor Multiplicador (+1, +5, +10, MAX) */}
+      <div className={`p-4 rounded-xl border backdrop-blur-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition ${stats.statPoints > 0 ? 'bg-gradient-to-r from-amber-950/80 via-red-950/80 to-amber-950/80 border-amber-400 shadow-lg' : 'bg-black/40 border-white/10'}`}>
         <div className="flex items-center gap-2">
           <Sparkles size={20} className={stats.statPoints > 0 ? 'text-amber-300 animate-spin' : 'text-gray-500'} />
-          <span className="text-sm font-bold text-amber-200">
-            Pontos de Atributo Não Alocados:
-          </span>
+          <div>
+            <span className="text-xs text-amber-300/80 uppercase tracking-wider font-mono block">Pontos Disponíveis</span>
+            <span className="text-2xl font-extrabold font-mono text-amber-400">
+              {stats.statPoints}
+            </span>
+          </div>
         </div>
-        <span className="text-xl font-extrabold font-mono text-amber-400 bg-black/80 px-4 py-1 rounded-xl border border-amber-400/60 shadow-inner">
-          {stats.statPoints}
-        </span>
+
+        {/* Seleção de Multiplicador de Adição */}
+        <div className="flex items-center gap-2 bg-black/60 p-1.5 rounded-xl border border-amber-500/30 w-full sm:w-auto justify-between sm:justify-end">
+          <span className="text-[10px] text-gray-400 font-mono font-bold uppercase px-2">Multiplicador:</span>
+          {([1, 5, 10, 'MAX'] as const).map((step) => {
+            const isSelected = allocStep === step;
+            return (
+              <button
+                key={step}
+                onClick={() => setAllocStep(step)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold font-mono transition ${
+                  isSelected
+                    ? 'bg-amber-400 text-black shadow-md scale-105'
+                    : 'bg-slate-900 text-gray-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                {step === 'MAX' ? 'TUDO (MAX)' : `+${step}`}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Grade de Alocação de Atributos com Layout Moderno */}
@@ -122,11 +153,12 @@ export const StatsPanel: React.FC = () => {
           </div>
 
           <button
-            onClick={() => allocateStatPoint('atk')}
+            onClick={() => allocateStatPoint('atk', currentPointsStep)}
             disabled={stats.statPoints <= 0}
-            className="w-full py-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
           >
-            <PlusCircle size={15} /> Aumentar +4 ATK
+            {allocStep === 'MAX' ? <ChevronsUp size={16} /> : <PlusCircle size={15} />}
+            Adicionar +{currentPointsStep * 4} ATK ({currentPointsStep} {currentPointsStep === 1 ? 'pt' : 'pts'})
           </button>
         </div>
 
@@ -148,11 +180,12 @@ export const StatsPanel: React.FC = () => {
           </div>
 
           <button
-            onClick={() => allocateStatPoint('def')}
+            onClick={() => allocateStatPoint('def', currentPointsStep)}
             disabled={stats.statPoints <= 0}
-            className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
           >
-            <PlusCircle size={15} /> Aumentar +2 DEF
+            {allocStep === 'MAX' ? <ChevronsUp size={16} /> : <PlusCircle size={15} />}
+            Adicionar +{currentPointsStep * 2} DEF ({currentPointsStep} {currentPointsStep === 1 ? 'pt' : 'pts'})
           </button>
         </div>
 
@@ -174,11 +207,12 @@ export const StatsPanel: React.FC = () => {
           </div>
 
           <button
-            onClick={() => allocateStatPoint('hp')}
+            onClick={() => allocateStatPoint('hp', currentPointsStep)}
             disabled={stats.statPoints <= 0}
-            className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
           >
-            <PlusCircle size={15} /> Aumentar +25 HP
+            {allocStep === 'MAX' ? <ChevronsUp size={16} /> : <PlusCircle size={15} />}
+            Adicionar +{currentPointsStep * 25} HP ({currentPointsStep} {currentPointsStep === 1 ? 'pt' : 'pts'})
           </button>
         </div>
 
@@ -200,14 +234,16 @@ export const StatsPanel: React.FC = () => {
           </div>
 
           <button
-            onClick={() => allocateStatPoint('spd')}
+            onClick={() => allocateStatPoint('spd', currentPointsStep)}
             disabled={stats.statPoints <= 0}
-            className="w-full py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
           >
-            <PlusCircle size={15} /> Aumentar +0.05 SPD
+            {allocStep === 'MAX' ? <ChevronsUp size={16} /> : <PlusCircle size={15} />}
+            Adicionar +{(currentPointsStep * 0.05).toFixed(2)} SPD ({currentPointsStep} {currentPointsStep === 1 ? 'pt' : 'pts'})
           </button>
         </div>
       </div>
     </div>
   );
 };
+

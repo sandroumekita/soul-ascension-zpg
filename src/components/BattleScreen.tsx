@@ -27,6 +27,7 @@ export const BattleScreen: React.FC = () => {
   } = useGameStore();
 
   const [floatingDamages, setFloatingDamages] = useState<FloatingDamage[]>([]);
+  const [isHitAnimating, setIsHitAnimating] = useState<boolean>(false);
 
   const primaryEnemy = currentEnemies[0];
 
@@ -34,6 +35,9 @@ export const BattleScreen: React.FC = () => {
   useEffect(() => {
     if (!primaryEnemy) return;
     
+    setIsHitAnimating(true);
+    const hitTimer = setTimeout(() => setIsHitAnimating(false), 180);
+
     // Dispara animação de número flutuante de dano quando o mob recebe um golpe
     const newDmg: FloatingDamage = {
       id: `dmg_${Date.now()}_${Math.random()}`,
@@ -49,7 +53,10 @@ export const BattleScreen: React.FC = () => {
       setFloatingDamages((prev) => prev.filter((d) => d.id !== newDmg.id));
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(hitTimer);
+    };
   }, [primaryEnemy?.currentHp]);
 
   const currentBiome = BIOMES_CATALOG.find((b) => b.id === currentBiomeId) || BIOMES_CATALOG[0];
@@ -140,9 +147,14 @@ export const BattleScreen: React.FC = () => {
       {/* Arena de Batalha (Horda de Inimigos vs Shinigami) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
         {/* Visual dos Inimigos Ativos da Horda */}
-        <div className="bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col justify-between relative overflow-hidden hover:border-red-500 transition duration-300 min-h-[220px]">
+        <div className={`bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col justify-between relative overflow-hidden transition duration-150 min-h-[220px] ${isHitAnimating ? 'scale-[0.98] border-red-500 bg-red-950/30' : 'hover:border-red-500'}`}>
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
           
+          {/* Slash Flash Overlay on Damage Hit */}
+          {isHitAnimating && (
+            <div className="absolute inset-0 bg-red-500/15 backdrop-invert-0 pointer-events-none z-20 animate-pulse" />
+          )}
+
           {/* Números Flutuantes de Dano Animados */}
           {floatingDamages.map((dmg) => (
             <div

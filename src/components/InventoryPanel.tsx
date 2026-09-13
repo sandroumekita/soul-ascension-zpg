@@ -5,22 +5,35 @@ import { GAME_THEME } from '../config/themeConfig';
 import { Sword, Trash2, CheckCircle, Sparkles } from 'lucide-react';
 
 export const InventoryPanel: React.FC = () => {
-  const { equippedWeapon, inventory, equipItem, unequipSlot, sellItem, salvageItem, autoEquipBestWeapon } = useGameStore();
+  const { equippedWeapon, inventory, equipItem, unequipSlot, sellItem, salvageItem, salvageAllNormalItems, autoEquipBestWeapon } = useGameStore();
+
+  const hasNormalItems = inventory.some((i) => i.rarity === 'normal');
 
   return (
     <div className="bg-slate-900/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-4 shadow-2xl backdrop-blur-md">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
         <h3 className="text-base font-extrabold flex items-center gap-2 text-amber-400">
           <Sword size={18} /> Equipamentos & Inventário de {GAME_THEME.weaponTerm}
         </h3>
-        {inventory.length > 0 && (
-          <button
-            onClick={autoEquipBestWeapon}
-            className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles size={14} /> Auto-Equipar Melhor Item
-          </button>
-        )}
+        <div className="flex gap-2">
+          {hasNormalItems && (
+            <button
+              onClick={salvageAllNormalItems}
+              className="px-3 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/50 font-bold text-xs rounded-xl shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+              title="Desmontar todos os itens de raridade Normal de uma só vez"
+            >
+              ♻️ Desmontar Comuns
+            </button>
+          )}
+          {inventory.length > 0 && (
+            <button
+              onClick={autoEquipBestWeapon}
+              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles size={14} /> Auto-Equipar Melhor Item
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Item Equipado no momento */}

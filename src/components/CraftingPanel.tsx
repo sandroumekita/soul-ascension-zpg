@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { CRAFTING_RECIPES_CATALOG, RARITY_COLORS } from '../data/gameCatalog';
 import { GAME_THEME } from '../config/themeConfig';
+import type { Rarity } from '../types/game';
 import { Hammer, Flame } from 'lucide-react';
 
 export const CraftingPanel: React.FC = () => {
   const { craftingMaterials, stats, craftRecipe } = useGameStore();
+  const [selectedRarityFilter, setSelectedRarityFilter] = useState<Rarity | 'all'>('all');
+
+  const filteredRecipes = CRAFTING_RECIPES_CATALOG.filter(
+    (recipe) => selectedRarityFilter === 'all' || recipe.resultRarity === selectedRarityFilter
+  );
 
   return (
     <div className="bg-slate-900/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-5 shadow-2xl backdrop-blur-md">
@@ -48,14 +54,33 @@ export const CraftingPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Lista de Receitas Desbloqueadas */}
-      <div>
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <Flame size={14} className="text-amber-400" /> Receitas Disponíveis para Criação:
+      {/* Filtros por Raridade */}
+      <div className="flex justify-between items-center gap-2">
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+          <Flame size={14} className="text-amber-400" /> Receitas Disponíveis ({filteredRecipes.length}):
         </div>
 
+        <div className="flex gap-1.5">
+          {(['all', 'rare', 'epic', 'legendary', 'transcendent'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setSelectedRarityFilter(r)}
+              className={`text-[10px] px-2.5 py-1 rounded-lg font-bold border uppercase transition cursor-pointer ${
+                selectedRarityFilter === r
+                  ? 'bg-amber-500 text-black border-amber-300 shadow-md font-extrabold scale-105'
+                  : 'bg-black/40 text-gray-400 border-white/10 hover:text-white'
+              }`}
+            >
+              {r === 'all' ? 'Todas' : r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Lista de Receitas Desbloqueadas */}
+      <div>
         <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto pr-1">
-          {CRAFTING_RECIPES_CATALOG.map((recipe) => {
+          {filteredRecipes.map((recipe) => {
             const rarityStyle = RARITY_COLORS[recipe.resultRarity as keyof typeof RARITY_COLORS] || RARITY_COLORS.normal;
             const canCraft =
               craftingMaterials.material1 >= recipe.requiredMaterial1 &&

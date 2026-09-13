@@ -58,6 +58,7 @@ interface GameState {
   unequipSlot: (slot: 'weapon' | 'shihakusho' | 'accessory') => void;
   sellItem: (instanceId: string) => void;
   salvageItem: (instanceId: string) => void;
+  salvageAllNormalItems: () => void;
   craftRecipe: (recipeId: string) => boolean;
   equipSkill: (skillId: string, slot: 1 | 2) => void;
   summonGacha: (costOrbs: number) => { item?: Equipment; skill?: string; isDuplicate: boolean };
@@ -660,6 +661,40 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set({
       inventory: inventory.filter((i) => i.instanceId !== instanceId),
+      craftingMaterials: updatedMaterials,
+      logs: [newLog, ...logs.slice(0, 49)],
+    });
+  },
+
+  salvageAllNormalItems: () => {
+    const { inventory, craftingMaterials, logs } = get();
+    const normalItems = inventory.filter((i) => i.rarity === 'normal');
+    if (normalItems.length === 0) return;
+
+    let mat1Gained = 0;
+    let mat2Gained = 0;
+
+    normalItems.forEach(() => {
+      mat1Gained += 2;
+      mat2Gained += 1;
+    });
+
+    const remainingInventory = inventory.filter((i) => i.rarity !== 'normal');
+    const updatedMaterials = {
+      ...craftingMaterials,
+      material1: craftingMaterials.material1 + mat1Gained,
+      material2: craftingMaterials.material2 + mat2Gained,
+    };
+
+    const newLog: BattleLogMessage = {
+      id: `log_salvage_bulk_${Date.now()}`,
+      text: `♻️ RECICLAGEM EM LOTE: ${normalItems.length} itens comuns geraram +${mat1Gained} Mat.1, +${mat2Gained} Mat.2!`,
+      type: 'system',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    set({
+      inventory: remainingInventory,
       craftingMaterials: updatedMaterials,
       logs: [newLog, ...logs.slice(0, 49)],
     });

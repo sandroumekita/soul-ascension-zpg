@@ -274,9 +274,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - autoAttackDmg);
 
-    // Apply Lifesteal
+    // Apply Lifesteal (50% eficiência contra mobs normais, 100% contra Boss)
     if (newBuff && newBuff.lifestealPct > 0) {
-      const healAmount = Math.round(autoAttackDmg * newBuff.lifestealPct);
+      const isBossFight = primaryEnemy.isBoss;
+      const lifestealMult = isBossFight ? 1.0 : 0.5;
+      const healAmount = Math.round(autoAttackDmg * newBuff.lifestealPct * lifestealMult);
       newPlayerHp = Math.min(calc.hp, newPlayerHp + healAmount);
     }
 
@@ -343,8 +345,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     // --- ATAQUES SIMULTÂNEOS DOS INIMIGOS DA HORDA ---
     enemies.forEach((enemy) => {
       if (enemy.currentHp > 0) {
-        const enemyRawDmg = Math.max(1, enemy.atk - calc.def * 0.4);
-        const enemyDmgPerTick = Math.round((enemyRawDmg / (enemy.attackSpeedSec || 1.2)) * deltaTimeSec);
+        // Boss Habilidade Especial: 15% de Chance por segundo de desferir Golpe Perfurante de Reiatsu!
+        const isBossSkillHit = enemy.isBoss && Math.random() < (0.15 * deltaTimeSec);
+        let enemyDmgPerTick = 0;
+
+        if (isBossSkillHit) {
+          // Golpe Perfurante ignora 60% da Defesa do jogador
+          const bossSkillDmg = Math.max(10, Math.round(enemy.atk * 1.6 - calc.def * 0.16));
+          enemyDmgPerTick = bossSkillDmg;
+          logsToAdd.push({
+            id: `log_boss_skill_${Date.now()}`,
+            text: `⚠️ [BOSS HABILDADE] ${enemy.name} desferiu um Golpe Perfurante de Reiatsu! causou ${bossSkillDmg} de dano!`,
+            type: 'system',
+            timestamp: new Date().toLocaleTimeString(),
+          });
+        } else {
+          const enemyRawDmg = Math.max(1, enemy.atk - calc.def * 0.4);
+          enemyDmgPerTick = Math.round((enemyRawDmg / (enemy.attackSpeedSec || 1.2)) * deltaTimeSec);
+        }
+
         newPlayerHp = Math.max(0, newPlayerHp - enemyDmgPerTick);
       }
     });
@@ -554,7 +573,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (stat === 'atk') newBaseAtk += 4 * pointsToUse;
     if (stat === 'def') newBaseDef += 2 * pointsToUse;
     if (stat === 'hp') newBaseHp += 25 * pointsToUse;
-    if (stat === 'spd') newBaseSpd += 0.05 * pointsToUse;
+    if (stat === 'spd') {
+      // Soft Cap Scaling:
+      // spd < 2.5: +0.05 por ponto
+      // 2.5 <= spd < 4.0: +0.025 por ponto
+      // spd >= 4.0: +0.01 por ponto
+      for (let i = 0; i < pointsToUse; i++) {
+        if (newBaseSpd < 2.5) {
+          newBaseSpd += 0.05;
+        } else if (newBaseSpd < 4.0) {
+          newBaseSpd += 0.025;
+        } else {
+          newBaseSpd += 0.01;
+        }
+      }
+    }
 
     set({
       stats: {

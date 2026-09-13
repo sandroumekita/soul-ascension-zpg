@@ -44,10 +44,11 @@ interface GameState {
   // Logs
   logs: BattleLogMessage[];
   
-  // Actions
+  // Actions & Utilities
   tick: (deltaTimeSec: number) => void;
   allocateStatPoint: (stat: 'atk' | 'def' | 'hp' | 'spd') => void;
   equipItem: (item: Equipment) => void;
+  autoEquipBestWeapon: () => void;
   unequipSlot: (slot: 'weapon' | 'shihakusho' | 'accessory') => void;
   sellItem: (instanceId: string) => void;
   equipSkill: (skillId: string, slot: 1 | 2) => void;
@@ -523,6 +524,29 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         equippedWeapon: item,
         inventory: remainingInventory,
+      });
+    }
+  },
+
+  autoEquipBestWeapon: () => {
+    const { equippedWeapon, inventory } = get();
+    if (inventory.length === 0) return;
+
+    // Encontra a arma do inventário com maior dano de ATK
+    const weaponsInInv = inventory.filter((i) => i.slot === 'weapon');
+    if (weaponsInInv.length === 0) return;
+
+    weaponsInInv.sort((a, b) => b.atk - a.atk);
+    const bestWeapon = weaponsInInv[0];
+
+    const currentAtk = equippedWeapon ? equippedWeapon.atk : 0;
+    if (bestWeapon.atk > currentAtk) {
+      const remainingInv = inventory.filter((i) => i.instanceId !== bestWeapon.instanceId);
+      if (equippedWeapon) remainingInv.push(equippedWeapon);
+
+      set({
+        equippedWeapon: bestWeapon,
+        inventory: remainingInv,
       });
     }
   },

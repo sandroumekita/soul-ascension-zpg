@@ -1,10 +1,11 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
-import { Shield, Zap, Sparkles, Skull, Crown, Activity } from 'lucide-react';
+import { Shield, Zap, Sparkles, Skull, Crown, Activity, Flame } from 'lucide-react';
 
 export const BattleScreen: React.FC = () => {
   const {
+    stats,
     currentEnemy,
     playerCurrentHp,
     playerMaxHp,
@@ -18,6 +19,7 @@ export const BattleScreen: React.FC = () => {
     skill2Cooldown,
     equippedSlot1SkillId,
     equippedSlot2SkillId,
+    equippedWeapon,
   } = useGameStore();
 
   const currentBiome = BIOMES_CATALOG.find((b) => b.id === currentBiomeId) || BIOMES_CATALOG[0];
@@ -25,8 +27,13 @@ export const BattleScreen: React.FC = () => {
   const enemyHpPct = currentEnemy ? Math.max(0, Math.min(100, (currentEnemy.currentHp / currentEnemy.maxHp) * 100)) : 0;
   const playerHpPct = Math.max(0, Math.min(100, (playerCurrentHp / playerMaxHp) * 100));
 
+  // Cálculo de DPS Estimado em Tempo Real
+  const weaponAtk = equippedWeapon ? equippedWeapon.atk : 0;
+  const totalAtk = stats.baseAtk + weaponAtk;
+  const calculatedDps = Math.round(totalAtk * stats.baseSpd);
+
   return (
-    <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-5 rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden`}>
+    <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-5 rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden backdrop-blur-md`}>
       {/* Header do Bioma e Dificuldade */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-black/60 p-4 rounded-xl border border-white/10 backdrop-blur-md gap-3">
         <div>
@@ -45,7 +52,7 @@ export const BattleScreen: React.FC = () => {
           {!isFightingBoss && (
             <button
               onClick={challengeBoss}
-              className="mt-1 text-xs px-4 py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition flex items-center gap-1.5 animate-pulse cursor-pointer"
+              className="mt-1 text-xs px-4 py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1.5 animate-pulse cursor-pointer"
             >
               <Skull size={15} /> Desafiar Boss!
             </button>
@@ -61,7 +68,7 @@ export const BattleScreen: React.FC = () => {
       {/* Arena de Batalha (Inimigo vs Shinigami) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
         {/* Visual do Inimigo / Hollow */}
-        <div className="bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden">
+        <div className="bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden hover:border-red-500 transition duration-300">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
           
           <div className="w-full flex justify-between items-center mb-3">
@@ -73,8 +80,8 @@ export const BattleScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Avatar / Icon do Inimigo */}
-          <div className="my-4 p-5 bg-gradient-to-b from-red-950/40 to-black rounded-full border border-red-500/30 text-red-500 shadow-2xl animate-bounce">
+          {/* Avatar / Icon do Inimigo com Efeito Flutuante */}
+          <div className="my-4 p-5 bg-gradient-to-b from-red-950/40 to-black rounded-full border border-red-500/30 text-red-500 shadow-2xl animate-bounce relative">
             <Skull size={48} />
           </div>
 
@@ -93,7 +100,7 @@ export const BattleScreen: React.FC = () => {
         </div>
 
         {/* Visual do Shinigami (Player) */}
-        <div className="bg-slate-950/80 p-5 rounded-2xl border border-cyan-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden">
+        <div className="bg-slate-950/80 p-5 rounded-2xl border border-cyan-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden hover:border-cyan-400 transition duration-300">
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="w-full flex justify-between items-center mb-3">
@@ -106,7 +113,7 @@ export const BattleScreen: React.FC = () => {
           </div>
 
           {/* Avatar / Icon do Shinigami */}
-          <div className="my-4 p-5 bg-gradient-to-b from-cyan-950/40 to-black rounded-full border border-cyan-500/30 text-cyan-400 shadow-2xl">
+          <div className="my-4 p-5 bg-gradient-to-b from-cyan-950/40 to-black rounded-full border border-cyan-500/30 text-cyan-400 shadow-2xl animate-pulse">
             <Activity size={48} />
           </div>
 
@@ -118,8 +125,11 @@ export const BattleScreen: React.FC = () => {
             />
           </div>
 
-          <div className="text-xs text-cyan-300 font-semibold bg-black/40 px-4 py-1.5 rounded-full border border-white/5">
-            ⚔️ Batalhando em Tempo Real (Auto-Attack)
+          <div className="flex gap-4 text-xs text-cyan-300 font-semibold bg-black/40 px-4 py-1.5 rounded-full border border-white/5">
+            <span className="flex items-center gap-1 font-bold text-amber-300">
+              <Flame size={14} className="text-amber-400" /> {calculatedDps} DPS
+            </span>
+            <span>⚡ {stats.baseSpd.toFixed(2)} Atks/s</span>
           </div>
         </div>
       </div>

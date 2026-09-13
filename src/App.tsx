@@ -15,6 +15,14 @@ export const App: React.FC = () => {
   const tick = useGameStore((state) => state.tick);
   const resetSave = useGameStore((state) => state.resetProgressSave);
 
+  const stats = useGameStore((state) => state.stats);
+  const inventory = useGameStore((state) => state.inventory);
+  const equippedWeapon = useGameStore((state) => state.equippedWeapon);
+
+  // Verificações de Badges (Red Dots)
+  const hasStatPoints = stats.statPoints > 0;
+  const hasBetterWeapon = inventory.some((i) => i.slot === 'weapon' && (!equippedWeapon || i.atk > equippedWeapon.atk));
+
   // Gameloop continuous Ticker (60 FPS / Delta Time)
   useEffect(() => {
     let lastTime = performance.now();
@@ -23,39 +31,38 @@ export const App: React.FC = () => {
       const deltaSec = (now - lastTime) / 1000;
       lastTime = now;
       tick(deltaSec);
-    }, 100); // 10 ticks por segundo para simulação suave e leve
+    }, 100);
 
     return () => clearInterval(interval);
   }, [tick]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-4xl mx-auto font-sans shadow-2xl">
-      {/* Header Principal da Aplicação */}
-      <header className="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-lg">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-4xl mx-auto font-sans shadow-2xl border-x border-slate-800/80">
+      {/* Header Principal da Aplicação com Efeito Glassmorphism */}
+      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center shadow-lg sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-tr from-red-600 to-amber-500 rounded-lg shadow-md text-white font-extrabold text-lg">
+          <div className="p-2.5 bg-gradient-to-tr from-red-600 to-amber-500 rounded-xl shadow-lg text-white font-extrabold text-xl animate-pulse">
             🗡️
           </div>
           <div>
             <h1 className="text-xl font-extrabold bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
               Soul Ascension
             </h1>
-            <p className="text-xs text-gray-400 font-mono">Bleach Idle Auto-RPG (ZPG)</p>
+            <p className="text-xs text-gray-400 font-mono">Bleach Auto-RPG (ZPG)</p>
           </div>
         </div>
 
         <button
           onClick={resetSave}
-          className="text-xs text-gray-500 hover:text-red-400 transition flex items-center gap-1 bg-black/40 px-2.5 py-1.5 rounded border border-white/5"
+          className="text-xs text-gray-400 hover:text-red-400 transition flex items-center gap-1 bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 hover:border-red-500/50 cursor-pointer"
           title="Reiniciar Progresso"
         >
           <RefreshCw size={12} /> Reset Save
         </button>
       </header>
 
-      {/* Área de Conteúdo Ativo */}
+      {/* Área de Conteúdo Ativo com Transições Fluidas */}
       <main className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
-        {/* Tela de Batalha (Sempre visível no topo ou na aba) */}
         {activeTab === 'battle' && <BattleScreen />}
         {activeTab === 'stats' && <StatsPanel />}
         {activeTab === 'inventory' && <InventoryPanel />}
@@ -64,13 +71,13 @@ export const App: React.FC = () => {
         {activeTab === 'biomes' && <WorldMapPanel />}
       </main>
 
-      {/* Navegação por Abas Inferiores (Mobile First / HUD Taskbar) */}
-      <nav className="bg-slate-900 border-t border-slate-800 p-2 sticky bottom-0 z-50">
+      {/* Navegação por Abas Inferiores com Badges (Red Dots) */}
+      <nav className="bg-slate-900/90 backdrop-blur-lg border-t border-slate-800 p-2 sticky bottom-0 z-50">
         <div className="grid grid-cols-6 gap-1 max-w-2xl mx-auto">
           <button
             onClick={() => setActiveTab('battle')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'battle' ? 'bg-red-950 text-red-400 border border-red-500/50' : 'text-gray-400 hover:text-white'
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer ${
+              activeTab === 'battle' ? 'bg-red-950 text-red-400 border border-red-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Swords size={18} />
@@ -79,28 +86,37 @@ export const App: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('stats')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'stats' ? 'bg-blue-950 text-blue-400 border border-blue-500/50' : 'text-gray-400 hover:text-white'
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer relative ${
+              activeTab === 'stats' ? 'bg-blue-950 text-blue-400 border border-blue-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
             }`}
           >
+            {hasStatPoints && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+            )}
+            {hasStatPoints && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white text-[9px] flex items-center justify-center font-bold" />
+            )}
             <Shield size={18} />
             <span>Status</span>
           </button>
 
           <button
             onClick={() => setActiveTab('inventory')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'inventory' ? 'bg-amber-950 text-amber-400 border border-amber-500/50' : 'text-gray-400 hover:text-white'
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer relative ${
+              activeTab === 'inventory' ? 'bg-amber-950 text-amber-400 border border-amber-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
             }`}
           >
+            {hasBetterWeapon && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-bounce" />
+            )}
             <Shield size={18} />
             <span>Itens</span>
           </button>
 
           <button
             onClick={() => setActiveTab('skills')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'skills' ? 'bg-purple-950 text-purple-400 border border-purple-500/50' : 'text-gray-400 hover:text-white'
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer ${
+              activeTab === 'skills' ? 'bg-purple-950 text-purple-400 border border-purple-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Sparkles size={18} />
@@ -109,8 +125,8 @@ export const App: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('shop')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'shop' ? 'bg-purple-950 text-purple-300 border border-purple-500/50' : 'text-gray-400 hover:text-white'
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer ${
+              activeTab === 'shop' ? 'bg-purple-950 text-purple-300 border border-purple-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
             }`}
           >
             <ShoppingBag size={18} />
@@ -119,8 +135,8 @@ export const App: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('biomes')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'biomes' ? 'bg-teal-950 text-teal-400 border border-teal-500/50' : 'text-gray-400 hover:text-white'
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer ${
+              activeTab === 'biomes' ? 'bg-teal-950 text-teal-400 border border-teal-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
             }`}
           >
             <MapPin size={18} />

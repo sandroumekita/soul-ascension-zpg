@@ -2,7 +2,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-red-500 selection:text-white;
+    @apply bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-red-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black;
   }
 }
 
@@ -20,4 +20,52 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
+}
+
+/* Keyframe Animations for Floating Damage & Glow Effects */
+@keyframes floatDamage {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-25px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-45px) scale(0.9);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
+  }
+}
+
+@keyframes bankaiAura {
+  0% {
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(168, 85, 247, 1));
+  }
+  100% {
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.6));
+  }
+}
+
+.animate-float-damage {
+  animation: floatDamage 1.2s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+.animate-bankai-aura {
+  animation: bankaiAura 1.5s infinite;
 }

@@ -221,12 +221,9 @@ export const BattleScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Avatar do Player em Pixel Art Animado */}
-          <div className="my-2 flex flex-col items-center">
+          {/* Avatar do Player em Pixel Art Vetorial Transparente */}
+          <div className="my-3 flex flex-col items-center">
             <HeroAvatarPixel size="md" isAttacking={isHitAnimating} />
-            <span className="text-[10px] text-amber-300 font-mono mt-2 bg-black/60 px-2 py-0.5 rounded border border-amber-500/30">
-              Shinigami Substituto (Pixel Art)
-            </span>
           </div>
 
           {/* Barra de Vida Player */}

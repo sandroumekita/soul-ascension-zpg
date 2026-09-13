@@ -4,7 +4,7 @@ import { RARITY_COLORS } from '../data/gameCatalog';
 import { Sword, Trash2, CheckCircle, Sparkles } from 'lucide-react';
 
 export const InventoryPanel: React.FC = () => {
-  const { equippedWeapon, inventory, equipItem, unequipSlot, sellItem, autoEquipBestWeapon } = useGameStore();
+  const { equippedWeapon, inventory, equipItem, unequipSlot, sellItem, salvageItem, autoEquipBestWeapon } = useGameStore();
 
   return (
     <div className="bg-slate-900/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-4 shadow-2xl backdrop-blur-md">
@@ -91,14 +91,21 @@ export const InventoryPanel: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => equipItem(item)}
-                      className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded shadow transition flex items-center gap-1"
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded shadow transition flex items-center gap-1 cursor-pointer"
                     >
                       <CheckCircle size={12} /> Equipar
                     </button>
                     <button
+                      onClick={() => salvageItem(item.instanceId)}
+                      className="px-2.5 py-1 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/60 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      title="Desmontar para obter Reishi e Minérios"
+                    >
+                      ♻️ Desmontar
+                    </button>
+                    <button
                       onClick={() => sellItem(item.instanceId)}
-                      className="p-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-800 rounded transition"
-                      title="Vender Item"
+                      className="p-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-800 rounded transition cursor-pointer"
+                      title="Vender por Reiryoku"
                     >
                       <Trash2 size={14} />
                     </button>

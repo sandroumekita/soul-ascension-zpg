@@ -3,12 +3,13 @@ import { useGameStore } from './store/useGameStore';
 import { BattleScreen } from './components/BattleScreen';
 import { StatsPanel } from './components/StatsPanel';
 import { InventoryPanel } from './components/InventoryPanel';
+import { CraftingPanel } from './components/CraftingPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { GachaShopPanel } from './components/GachaShopPanel';
 import { WorldMapPanel } from './components/WorldMapPanel';
-import { Swords, Shield, ShoppingBag, Sparkles, MapPin, RefreshCw } from 'lucide-react';
+import { Swords, Shield, ShoppingBag, Sparkles, MapPin, RefreshCw, Hammer } from 'lucide-react';
 
-type Tab = 'battle' | 'stats' | 'inventory' | 'skills' | 'shop' | 'biomes';
+type Tab = 'battle' | 'stats' | 'inventory' | 'crafting' | 'skills' | 'shop' | 'biomes';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('battle');
@@ -66,6 +67,7 @@ export const App: React.FC = () => {
         {activeTab === 'battle' && <BattleScreen />}
         {activeTab === 'stats' && <StatsPanel />}
         {activeTab === 'inventory' && <InventoryPanel />}
+        {activeTab === 'crafting' && <CraftingPanel />}
         {activeTab === 'skills' && <SkillsPanel />}
         {activeTab === 'shop' && <GachaShopPanel />}
         {activeTab === 'biomes' && <WorldMapPanel />}
@@ -73,7 +75,7 @@ export const App: React.FC = () => {
 
       {/* Navegação por Abas Inferiores com Badges (Red Dots) */}
       <nav className="bg-slate-900/90 backdrop-blur-lg border-t border-slate-800 p-2 sticky bottom-0 z-50">
-        <div className="grid grid-cols-6 gap-1 max-w-2xl mx-auto">
+        <div className="grid grid-cols-7 gap-1 max-w-2xl mx-auto">
           <button
             onClick={() => setActiveTab('battle')}
             className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer ${
@@ -111,6 +113,16 @@ export const App: React.FC = () => {
             )}
             <Shield size={18} />
             <span>Itens</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('crafting')}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer ${
+              activeTab === 'crafting' ? 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-lg' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Hammer size={18} />
+            <span>Forja</span>
           </button>
 
           <button

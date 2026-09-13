@@ -1,4 +1,4 @@
-import type { WeaponData, SkillData, Biome, Rarity } from '../types/game';
+import type { WeaponData, SkillData, Biome, Rarity, CraftingRecipe } from '../types/game';
 
 export const RARITY_MULTIPLIERS: Record<Rarity, number> = {
   normal: 1.0,
@@ -379,3 +379,73 @@ export const BIOMES_CATALOG: Biome[] = [
     boss: { name: 'Sōsuke Aizen Transcendente', hpBase: 140000, atkBase: 5200, defBase: 2500, expBase: 50000, goldBase: 40000, attackSpeedSec: 1.2, avatarIcon: '🌌' },
   },
 ];
+
+export const CRAFTING_RECIPES_CATALOG: CraftingRecipe[] = [
+  {
+    id: 'recipe_zangetsu_rare',
+    resultWeaponId: 'zangetsu',
+    resultRarity: 'rare',
+    name: 'Zangetsu (RARO)',
+    description: 'Forjar a clássica lâmina de decapitação com fragmentos de Reishi.',
+    requiredReishiFragments: 15,
+    requiredIronOre: 5,
+    requiredSpiritEssence: 0,
+    goldCost: 250,
+  },
+  {
+    id: 'recipe_senbonzakura_epic',
+    resultWeaponId: 'senbonzakura',
+    resultRarity: 'epic',
+    name: 'Senbonzakura (ÉPICO)',
+    description: 'Forjar a elegante katana dos mil picos floridos.',
+    requiredReishiFragments: 40,
+    requiredIronOre: 15,
+    requiredSpiritEssence: 3,
+    goldCost: 1000,
+  },
+  {
+    id: 'recipe_hyorinmaru_epic',
+    resultWeaponId: 'hyorinmaru',
+    resultRarity: 'epic',
+    name: 'Hyōrinmaru (ÉPICO)',
+    description: 'A mais forte Zanpakuto do elemento gelo.',
+    requiredReishiFragments: 50,
+    requiredIronOre: 20,
+    requiredSpiritEssence: 5,
+    goldCost: 1500,
+  },
+  {
+    id: 'recipe_ryujin_legendary',
+    resultWeaponId: 'ryujin_jakka',
+    resultRarity: 'legendary',
+    name: 'Ryūjin Jakka (LENDÁRIO)',
+    description: 'Forjar as chamas eternas do Comandante Geral Yamamoto.',
+    requiredReishiFragments: 120,
+    requiredIronOre: 50,
+    requiredSpiritEssence: 15,
+    goldCost: 5000,
+  },
+  {
+    id: 'recipe_kyoka_legendary',
+    resultWeaponId: 'kyoka_suigetsu',
+    resultRarity: 'legendary',
+    name: 'Kyōka Suigetsu (LENDÁRIO)',
+    description: 'A katana da ilusão completa de Sōsuke Aizen.',
+    requiredReishiFragments: 150,
+    requiredIronOre: 60,
+    requiredSpiritEssence: 20,
+    goldCost: 8000,
+  },
+  {
+    id: 'recipe_nozarashi_transcendent',
+    resultWeaponId: 'nozarashi',
+    resultRarity: 'transcendent',
+    name: 'Nozarashi (TRANSCENDENTE)',
+    description: 'Lâmina gigante capaz de cortar o próprio espaço de Kenpachi Zaraki.',
+    requiredReishiFragments: 300,
+    requiredIronOre: 120,
+    requiredSpiritEssence: 50,
+    goldCost: 20000,
+  },
+];
+

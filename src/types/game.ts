@@ -124,3 +124,22 @@ export interface FloatingDamage {
   isSkill: boolean;
   xOffset: number;
 }
+
+export interface CraftingRecipe {
+  id: string;
+  resultWeaponId: string;
+  resultRarity: Rarity;
+  name: string;
+  description: string;
+  requiredReishiFragments: number;
+  requiredIronOre: number;
+  requiredSpiritEssence: number;
+  goldCost: number;
+}
+
+export interface CraftingMaterials {
+  reishiFragments: number;
+  ironOre: number;
+  spiritEssence: number;
+}
+

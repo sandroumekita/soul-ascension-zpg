@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { 
-  CharacterStats, Equipment, OwnedSkill, Enemy, Difficulty, BattleLogMessage, Rarity 
+  CharacterStats, Equipment, OwnedSkill, Enemy, Difficulty, BattleLogMessage, Rarity
 } from '../types/game';
-import { BIOMES_CATALOG, WEAPONS_CATALOG, SKILLS_CATALOG, RARITY_MULTIPLIERS } from '../data/gameCatalog';
+import { BIOMES_CATALOG, WEAPONS_CATALOG, SKILLS_CATALOG, RARITY_MULTIPLIERS, CRAFTING_RECIPES_CATALOG } from '../data/gameCatalog';
 
 interface GameState {
   // Stats & Progress
@@ -32,7 +32,7 @@ interface GameState {
     name: string;
   } | null;
   
-  // Loadout & Inventory
+  // Loadout, Inventory & Crafting
   equippedSlot1SkillId: string | null;
   equippedSlot2SkillId: string | null;
   equippedWeapon: Equipment | null;
@@ -40,6 +40,11 @@ interface GameState {
   equippedAccessory: Equipment | null;
   
   inventory: Equipment[];
+  craftingMaterials: {
+    reishiFragments: number;
+    ironOre: number;
+    spiritEssence: number;
+  };
   ownedSkills: Record<string, OwnedSkill>; // skillId -> OwnedSkill
   
   // Logs
@@ -52,6 +57,8 @@ interface GameState {
   autoEquipBestWeapon: () => void;
   unequipSlot: (slot: 'weapon' | 'shihakusho' | 'accessory') => void;
   sellItem: (instanceId: string) => void;
+  salvageItem: (instanceId: string) => void;
+  craftRecipe: (recipeId: string) => boolean;
   equipSkill: (skillId: string, slot: 1 | 2) => void;
   summonGacha: (costOrbs: number) => { item?: Equipment; skill?: string; isDuplicate: boolean };
   changeBiome: (biomeId: string) => void;
@@ -208,6 +215,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   equippedAccessory: null,
 
   inventory: [],
+  craftingMaterials: {
+    reishiFragments: 20,
+    ironOre: 10,
+    spiritEssence: 2,
+  },
   ownedSkills: {
     getsuga_tensho: { skillId: 'getsuga_tensho', level: 1, unlocked: true },
     bankai_tensa: { skillId: 'bankai_tensa', level: 1, unlocked: true },
@@ -370,14 +382,14 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
       }
 
-      // Generate Loot (3% Chance por mob normal, 100% no Boss)
+      // Generate Loot (15% Chance por mob normal da horda, 100% no Boss)
       let newInventory = [...state.inventory];
-      if (wasBossDefeated || Math.random() < 0.03) {
+      if (wasBossDefeated || Math.random() < 0.15) {
         const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
         const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
         const rarityWeights = wasBossDefeated 
-          ? [0.70, 0.22, 0.065, 0.014, 0.001]   
-          : [0.92, 0.07, 0.009, 0.0009, 0.0001]; 
+          ? [0.55, 0.30, 0.115, 0.032, 0.003]   
+          : [0.80, 0.16, 0.035, 0.0048, 0.0002]; 
         
         const rand = Math.random();
         let cumulative = 0;
@@ -608,6 +620,104 @@ export const useGameStore = create<GameState>((set, get) => ({
       inventory: inventory.filter((i) => i.instanceId !== instanceId),
       stats: { ...stats, reiryoku: stats.reiryoku + item.sellPrice },
     });
+  },
+
+  salvageItem: (instanceId: string) => {
+    const { inventory, craftingMaterials, logs } = get();
+    const item = inventory.find((i) => i.instanceId === instanceId);
+    if (!item) return;
+
+    // Converte o item em materiais baseados na raridade
+    let fragmentsGained = 2;
+    let ironGained = 1;
+    let essenceGained = 0;
+
+    if (item.rarity === 'rare') {
+      fragmentsGained = 5;
+      ironGained = 3;
+    } else if (item.rarity === 'epic') {
+      fragmentsGained = 12;
+      ironGained = 6;
+      essenceGained = 1;
+    } else if (item.rarity === 'legendary' || item.rarity === 'transcendent') {
+      fragmentsGained = 30;
+      ironGained = 15;
+      essenceGained = 3;
+    }
+
+    const updatedMaterials = {
+      reishiFragments: craftingMaterials.reishiFragments + fragmentsGained,
+      ironOre: craftingMaterials.ironOre + ironGained,
+      spiritEssence: craftingMaterials.spiritEssence + essenceGained,
+    };
+
+    const newLog: BattleLogMessage = {
+      id: `log_salvage_${Date.now()}`,
+      text: `♻️ ITEM DESMONTADO: ${item.name} gerou +${fragmentsGained} Reishi, +${ironGained} Minério!`,
+      type: 'system',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    set({
+      inventory: inventory.filter((i) => i.instanceId !== instanceId),
+      craftingMaterials: updatedMaterials,
+      logs: [newLog, ...logs.slice(0, 49)],
+    });
+  },
+
+  craftRecipe: (recipeId: string) => {
+    const { craftingMaterials, stats, inventory, logs } = get();
+    const recipe = CRAFTING_RECIPES_CATALOG.find((r) => r.id === recipeId);
+    if (!recipe) return false;
+
+    // Verificar se possui recursos suficientes
+    if (
+      craftingMaterials.reishiFragments < recipe.requiredReishiFragments ||
+      craftingMaterials.ironOre < recipe.requiredIronOre ||
+      craftingMaterials.spiritEssence < recipe.requiredSpiritEssence ||
+      stats.reiryoku < recipe.goldCost
+    ) {
+      return false;
+    }
+
+    const weaponTemplate = WEAPONS_CATALOG.find((w) => w.id === recipe.resultWeaponId) || WEAPONS_CATALOG[0];
+    const mult = RARITY_MULTIPLIERS[recipe.resultRarity as keyof typeof RARITY_MULTIPLIERS] || 1.0;
+
+    const newEquip: Equipment = {
+      instanceId: `crafted_${Date.now()}`,
+      weaponId: weaponTemplate.id,
+      name: `${weaponTemplate.name} (${recipe.resultRarity.toUpperCase()})`,
+      rarity: recipe.resultRarity,
+      slot: 'weapon',
+      atk: Math.round(weaponTemplate.baseAtk * mult),
+      hp: 0,
+      def: 0,
+      critChance: weaponTemplate.critChanceBonus,
+      spdBonus: weaponTemplate.spdBonus,
+      sellPrice: Math.round(150 * mult),
+    };
+
+    const newMaterials = {
+      reishiFragments: craftingMaterials.reishiFragments - recipe.requiredReishiFragments,
+      ironOre: craftingMaterials.ironOre - recipe.requiredIronOre,
+      spiritEssence: craftingMaterials.spiritEssence - recipe.requiredSpiritEssence,
+    };
+
+    const newLog: BattleLogMessage = {
+      id: `log_craft_${Date.now()}`,
+      text: `🔨 FORJA CONCLUÍDA! Você forjou com sucesso: ${newEquip.name}!`,
+      type: 'loot',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    set({
+      craftingMaterials: newMaterials,
+      stats: { ...stats, reiryoku: stats.reiryoku - recipe.goldCost },
+      inventory: [...inventory, newEquip],
+      logs: [newLog, ...logs.slice(0, 49)],
+    });
+
+    return true;
   },
 
   equipSkill: (skillId: string, slot: 1 | 2) => {

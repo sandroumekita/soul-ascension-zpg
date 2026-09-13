@@ -17,10 +17,10 @@ export const WorldMapPanel: React.FC = () => {
 
 
   const difficultiesList: { id: Difficulty; name: string; mult: string; badge: string; color: string }[] = [
-    { id: 'normal', name: 'Normal', mult: '1.0x Stats Inimigos', badge: 'Iniciante', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
-    { id: 'hard', name: 'Hard', mult: '3.5x Stats Inimigos', badge: 'Intermediário', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
-    { id: 'nightmare', name: 'Nightmare', mult: '12.0x Stats Inimigos', badge: 'Veterano', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
-    { id: 'hell', name: 'Hell (Transcendente)', mult: '50.0x Stats Inimigos', badge: 'Lendário', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
+    { id: 'normal', name: 'Normal', mult: '1.0x Stats Inimigos', badge: 'Iniciante (Dia 1-2)', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
+    { id: 'hard', name: 'Hard', mult: '8.5x Stats Inimigos', badge: 'Intermediário (Dia 3-5)', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
+    { id: 'nightmare', name: 'Nightmare', mult: '65.0x Stats Inimigos', badge: 'Veterano (Dia 6-9)', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
+    { id: 'hell', name: 'Hell (Transcendente)', mult: '500.0x Stats Inimigos', badge: 'Supremo (Dia 10-14)', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
   ];
 
   return (

@@ -144,7 +144,7 @@ const getCalculatedStats = (state: {
 // Helper: Spawn Horda de Inimigos (1 a 3 mobs simultâneos conforme o estágio)
 const spawnEnemiesForBiome = (biomeId: string, diff: Difficulty, stage: number, isBoss: boolean): Enemy[] => {
   const biome = BIOMES_CATALOG.find((b) => b.id === biomeId) || BIOMES_CATALOG[0];
-  const diffMultiplier = diff === 'normal' ? 1.0 : diff === 'hard' ? 3.5 : diff === 'nightmare' ? 12.0 : 50.0;
+  const diffMultiplier = diff === 'normal' ? 1.0 : diff === 'hard' ? 8.5 : diff === 'nightmare' ? 65.0 : 500.0;
   
   if (isBoss || stage === 10) {
     const b = biome.boss;
@@ -392,7 +392,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         newStats.level += 1;
         newStats.statPoints += 3;
         newStats.exp -= newStats.nextLevelExp;
-        newStats.nextLevelExp = Math.round(newStats.nextLevelExp * 1.4);
+        newStats.nextLevelExp = Math.round(newStats.nextLevelExp * 1.75);
 
         logsToAdd.push({
           id: `log_lvl_${Date.now()}`,

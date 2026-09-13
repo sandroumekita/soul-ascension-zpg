@@ -16,7 +16,7 @@ interface GameState {
   unlockedDifficulties: Difficulty[];
   
   // Current Combat
-  currentEnemy: Enemy | null;
+  currentEnemies: Enemy[];
   playerCurrentHp: number;
   playerMaxHp: number;
   
@@ -133,15 +133,15 @@ const getCalculatedStats = (state: {
   return { atk: Math.round(atk), def: Math.round(def), hp: Math.round(hp), spd: parseFloat(spd.toFixed(2)), critChance };
 };
 
-// Helper: Generate Spawn Enemy
-const spawnEnemyForBiome = (biomeId: string, diff: Difficulty, stage: number, isBoss: boolean): Enemy => {
+// Helper: Spawn Horda de Inimigos (1 a 3 mobs simultâneos conforme o estágio)
+const spawnEnemiesForBiome = (biomeId: string, diff: Difficulty, stage: number, isBoss: boolean): Enemy[] => {
   const biome = BIOMES_CATALOG.find((b) => b.id === biomeId) || BIOMES_CATALOG[0];
   const diffMultiplier = diff === 'normal' ? 1.0 : diff === 'hard' ? 3.5 : diff === 'nightmare' ? 12.0 : 50.0;
   
   if (isBoss || stage === 10) {
     const b = biome.boss;
     const maxHp = Math.round(b.hpBase * diffMultiplier);
-    return {
+    return [{
       id: `boss_${Date.now()}`,
       name: `[BOSS] ${b.name}`,
       maxHp,
@@ -153,24 +153,32 @@ const spawnEnemyForBiome = (biomeId: string, diff: Difficulty, stage: number, is
       isBoss: true,
       attackSpeedSec: b.attackSpeedSec || 1.5,
       avatarIcon: b.avatarIcon || '💀',
-    };
+    }];
   }
 
-  const enemyTemplate = biome.enemies[(stage - 1) % biome.enemies.length];
-  const maxHp = Math.round(enemyTemplate.hpBase * diffMultiplier);
-  return {
-    id: `enemy_${Date.now()}`,
-    name: enemyTemplate.name,
-    maxHp,
-    currentHp: maxHp,
-    atk: Math.round(enemyTemplate.atkBase * diffMultiplier),
-    def: Math.round(enemyTemplate.defBase * diffMultiplier),
-    expReward: Math.round(enemyTemplate.expBase * diffMultiplier),
-    goldReward: Math.round(enemyTemplate.goldBase * diffMultiplier),
-    isBoss: false,
-    attackSpeedSec: enemyTemplate.attackSpeedSec || 1.2,
-    avatarIcon: enemyTemplate.avatarIcon || '👻',
-  };
+  // Gera de 1 a 3 mobs simultâneos dependendo da fase do estágio (Fases 1-3 = 1 mob, Fases 4-7 = 2 mobs, Fases 8-9 = 3 mobs)
+  const enemyCount = stage >= 8 ? 3 : stage >= 4 ? 2 : 1;
+  const enemies: Enemy[] = [];
+
+  for (let i = 0; i < enemyCount; i++) {
+    const enemyTemplate = biome.enemies[(stage - 1 + i) % biome.enemies.length];
+    const maxHp = Math.round(enemyTemplate.hpBase * diffMultiplier);
+    enemies.push({
+      id: `enemy_${Date.now()}_${i}`,
+      name: enemyTemplate.name,
+      maxHp,
+      currentHp: maxHp,
+      atk: Math.round(enemyTemplate.atkBase * diffMultiplier),
+      def: Math.round(enemyTemplate.defBase * diffMultiplier),
+      expReward: Math.round(enemyTemplate.expBase * diffMultiplier),
+      goldReward: Math.round(enemyTemplate.goldBase * diffMultiplier),
+      isBoss: false,
+      attackSpeedSec: enemyTemplate.attackSpeedSec || 1.2,
+      avatarIcon: enemyTemplate.avatarIcon || '👻',
+    });
+  }
+
+  return enemies;
 };
 
 const SAVED_STATE_KEY = 'soul_ascension_save_v1';
@@ -185,7 +193,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   unlockedBiomes: ['karakura'],
   unlockedDifficulties: ['normal'],
 
-  currentEnemy: spawnEnemyForBiome('karakura', 'normal', 1, false),
+  currentEnemies: spawnEnemiesForBiome('karakura', 'normal', 1, false),
   playerCurrentHp: 100,
   playerMaxHp: 100,
 
@@ -217,7 +225,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   // ---------------- COMBAT ENGINE TICK ----------------
   tick: (deltaTimeSec: number) => {
     const state = get();
-    if (!state.currentEnemy) return;
+    if (state.currentEnemies.length === 0) return;
 
     const calc = getCalculatedStats(state);
     let newPlayerHp = state.playerCurrentHp;
@@ -235,38 +243,49 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    const enemy = { ...state.currentEnemy };
+    const enemies = state.currentEnemies.map((e) => ({ ...e }));
     let logsToAdd: BattleLogMessage[] = [];
 
-    // --- PLAYER AUTO-ATTACK ---
-    // Calculate attack tick threshold
+    // O alvo primário é o primeiro mob vivo da fila
+    const primaryEnemy = enemies[0];
+    if (!primaryEnemy) return;
+
+    // --- PLAYER AUTO-ATTACK (Alvo Primário) ---
     const attackIntervalSec = 1.0 / calc.spd;
     const hitsThisTick = deltaTimeSec / attackIntervalSec;
 
-    let totalPlayerDamage = 0;
     const isCrit = Math.random() < calc.critChance;
-    const rawDamage = Math.max(1, calc.atk - enemy.def * 0.5);
+    const rawDamage = Math.max(1, calc.atk - primaryEnemy.def * 0.5);
     const finalHitDamage = isCrit ? Math.round(rawDamage * 1.8) : Math.round(rawDamage);
-    totalPlayerDamage = Math.round(finalHitDamage * hitsThisTick);
+    const autoAttackDmg = Math.round(finalHitDamage * hitsThisTick);
+    
+    primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - autoAttackDmg);
 
     // Apply Lifesteal
     if (newBuff && newBuff.lifestealPct > 0) {
-      const healAmount = Math.round(totalPlayerDamage * newBuff.lifestealPct);
+      const healAmount = Math.round(autoAttackDmg * newBuff.lifestealPct);
       newPlayerHp = Math.min(calc.hp, newPlayerHp + healAmount);
     }
 
-    // --- SKILL EXECUTION AUTOMATION ---
+    // --- SKILL EXECUTION AUTOMATION (Suporte a AoE) ---
     // Skill 1 Check
     if (newSkill1Cd <= 0 && state.equippedSlot1SkillId) {
       const skill = SKILLS_CATALOG.find((s) => s.id === state.equippedSlot1SkillId);
       if (skill) {
         const skillDamage = Math.round(calc.atk * skill.damageMultiplier);
-        totalPlayerDamage += skillDamage;
         newSkill1Cd = skill.cooldownSec;
+
+        // Se for Habilidade em Área (AoE), atinge múltiplos mobs da horda!
+        const targetsCount = skill.isAoE ? Math.min(enemies.length, skill.maxTargets || 3) : 1;
+        for (let i = 0; i < targetsCount; i++) {
+          if (enemies[i]) {
+            enemies[i].currentHp = Math.max(0, enemies[i].currentHp - skillDamage);
+          }
+        }
 
         logsToAdd.push({
           id: `log_${Date.now()}_s1`,
-          text: `💥 [Habilidade] ${skill.name} causou ${skillDamage} de dano em ${enemy.name}!`,
+          text: `💥 [Habilidade ${skill.isAoE ? 'ÁREA' : 'Single'}] ${skill.name} causou ${skillDamage} de dano em ${targetsCount} inimigo(s)!`,
           type: 'skill',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -278,8 +297,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       const bankai = SKILLS_CATALOG.find((s) => s.id === state.equippedSlot2SkillId);
       if (bankai) {
         const bankaiDamage = Math.round(calc.atk * bankai.damageMultiplier);
-        totalPlayerDamage += bankaiDamage;
         newSkill2Cd = bankai.cooldownSec;
+
+        // Se for Bankai em Área (AoE), dizima múltiplos inimigos!
+        const targetsCount = bankai.isAoE ? Math.min(enemies.length, bankai.maxTargets || 5) : 1;
+        for (let i = 0; i < targetsCount; i++) {
+          if (enemies[i]) {
+            enemies[i].currentHp = Math.max(0, enemies[i].currentHp - bankaiDamage);
+          }
+        }
 
         if (bankai.durationSec) {
           newBuff = {
@@ -294,28 +320,40 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         logsToAdd.push({
           id: `log_${Date.now()}_s2`,
-          text: `🔥 [BANKAI] ${bankai.name} ativado! Dano: ${bankaiDamage}!`,
+          text: `🔥 [BANKAI ${bankai.isAoE ? 'ÁREA' : 'Single'}] ${bankai.name} ativado! Dano: ${bankaiDamage} em ${targetsCount} inimigo(s)!`,
           type: 'skill',
           timestamp: new Date().toLocaleTimeString(),
         });
       }
     }
 
-    // Apply Damage to Enemy
-    enemy.currentHp = Math.max(0, enemy.currentHp - totalPlayerDamage);
+    // --- ATAQUES SIMULTÂNEOS DOS INIMIGOS DA HORDA ---
+    enemies.forEach((enemy) => {
+      if (enemy.currentHp > 0) {
+        const enemyRawDmg = Math.max(1, enemy.atk - calc.def * 0.4);
+        const enemyDmgPerTick = Math.round((enemyRawDmg / (enemy.attackSpeedSec || 1.2)) * deltaTimeSec);
+        newPlayerHp = Math.max(0, newPlayerHp - enemyDmgPerTick);
+      }
+    });
 
-    // --- ENEMY ATTACK BACK ---
-    if (enemy.currentHp > 0) {
-      const enemyRawDmg = Math.max(1, enemy.atk - calc.def * 0.4);
-      const enemyDmgPerTick = Math.round(enemyRawDmg * deltaTimeSec);
-      newPlayerHp = Math.max(0, newPlayerHp - enemyDmgPerTick);
-    }
+    // Filtra mobs sobreviventes
+    const aliveEnemies = enemies.filter((e) => e.currentHp > 0);
+    const defeatedEnemies = enemies.filter((e) => e.currentHp <= 0);
 
-    // --- ENEMY DEFEATED CASE ---
-    if (enemy.currentHp <= 0) {
-      const gainedExp = enemy.expReward;
-      const gainedGold = enemy.goldReward;
-      let newStats = { ...state.stats, exp: state.stats.exp + gainedExp, reiryoku: state.stats.reiryoku + gainedGold };
+    // --- HORDA ELIMINADA / RESPAWN / AVANÇO ---
+    if (aliveEnemies.length === 0) {
+      // Recompensas acumuladas de todos os mobs mortos nesta rodada
+      let totalExpGained = 0;
+      let totalGoldGained = 0;
+      let wasBossDefeated = false;
+
+      defeatedEnemies.forEach((e) => {
+        totalExpGained += e.expReward;
+        totalGoldGained += e.goldReward;
+        if (e.isBoss) wasBossDefeated = true;
+      });
+
+      let newStats = { ...state.stats, exp: state.stats.exp + totalExpGained, reiryoku: state.stats.reiryoku + totalGoldGained };
 
       // Check Level Up
       if (newStats.exp >= newStats.nextLevelExp) {
@@ -332,16 +370,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
       }
 
-      // Generate Loot (3% Chance on regular enemies, 100% on Bosses)
+      // Generate Loot (3% Chance por mob normal, 100% no Boss)
       let newInventory = [...state.inventory];
-      if (enemy.isBoss || Math.random() < 0.03) {
+      if (wasBossDefeated || Math.random() < 0.03) {
         const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
         const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
-        
-        // Taxas de raridade EXTREMAMENTE DÍFICEIS e gratificantes:
-        // Boss: 70% Normal, 22% Raro, 6.5% Épico, 1.4% Lendário, 0.1% Transcendente
-        // Normal: 92% Normal, 7% Raro, 0.9% Épico, 0.09% Lendário, 0.01% Transcendente
-        const rarityWeights = enemy.isBoss 
+        const rarityWeights = wasBossDefeated 
           ? [0.70, 0.22, 0.065, 0.014, 0.001]   
           : [0.92, 0.07, 0.009, 0.0009, 0.0001]; 
         
@@ -387,8 +421,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       let newUnlockedBiomes = [...state.unlockedBiomes];
       let newUnlockedDiffs = [...state.unlockedDifficulties];
 
-      if (enemy.isBoss || state.biomeStage === 10) {
-        // VENCEU O BOSS DO BIOMA!
+      if (wasBossDefeated || state.biomeStage === 10) {
         logsToAdd.push({
           id: `log_boss_win_${Date.now()}`,
           text: `🏆 BOSS DERROTADO! Você concluiu as 10 Fases de ${state.currentBiomeId.toUpperCase()}!`,
@@ -396,10 +429,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           timestamp: new Date().toLocaleTimeString(),
         });
 
-        // Encontra o index do bioma atual
         const currentBiomeIdx = BIOMES_CATALOG.findIndex((b) => b.id === state.currentBiomeId);
         if (currentBiomeIdx < BIOMES_CATALOG.length - 1) {
-          // Desbloqueia e avança para o próximo bioma
           const nextBiomeObj = BIOMES_CATALOG[currentBiomeIdx + 1];
           nextBiomeId = nextBiomeObj.id;
           nextStage = 1;
@@ -413,11 +444,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             timestamp: new Date().toLocaleTimeString(),
           });
         } else {
-          // VENCEU O ÚLTIMO BIOMA (PALÁCIO REAL - AIZEN)!
-          nextStage = 10; // Fica na fase 10 do último bioma
+          nextStage = 10;
           nextIsBoss = true;
 
-          // Desbloqueia a próxima Dificuldade Global
           const diffsOrder: Difficulty[] = ['normal', 'hard', 'nightmare', 'hell'];
           const currentDiffIdx = diffsOrder.indexOf(state.difficulty);
           if (currentDiffIdx < diffsOrder.length - 1) {
@@ -434,15 +463,14 @@ export const useGameStore = create<GameState>((set, get) => ({
           }
         }
       } else {
-        // Avanço normal de fase (se autoAdvance for true)
         if (state.autoAdvance) {
-          nextStage = Math.min(9, state.biomeStage + 1); // Não entra no boss automaticamente a menos que desafie ou autoAdvance atinja a fase 9
+          nextStage = Math.min(9, state.biomeStage + 1);
         } else {
-          nextStage = state.biomeStage; // Fica parado no mesmo estágio para farm
+          nextStage = state.biomeStage;
         }
       }
 
-      const nextEnemy = spawnEnemyForBiome(nextBiomeId, state.difficulty, nextStage, nextIsBoss);
+      const nextEnemies = spawnEnemiesForBiome(nextBiomeId, state.difficulty, nextStage, nextIsBoss);
 
       set({
         stats: newStats,
@@ -452,8 +480,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         isFightingBoss: nextIsBoss,
         unlockedBiomes: newUnlockedBiomes,
         unlockedDifficulties: newUnlockedDiffs,
-        currentEnemy: nextEnemy,
-        playerCurrentHp: calc.hp, // Full Heal na vitória
+        currentEnemies: nextEnemies,
+        playerCurrentHp: calc.hp,
         playerMaxHp: calc.hp,
         skill1Cooldown: newSkill1Cd,
         skill2Cooldown: newSkill2Cd,
@@ -464,7 +492,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    // --- PLAYER DEFEATED (AUTO-RECUO PARA A FASE 9 SE FOR NO BOSS) ---
+    // --- PLAYER DEFEATED (AUTO-RECUO) ---
     if (newPlayerHp <= 0) {
       const fallbackStage = state.biomeStage === 10 ? 9 : Math.max(1, state.biomeStage - 1);
       logsToAdd.push({
@@ -474,11 +502,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         timestamp: new Date().toLocaleTimeString(),
       });
 
-      const nextEnemy = spawnEnemyForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
+      const nextEnemies = spawnEnemiesForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
       set({
         biomeStage: fallbackStage,
         isFightingBoss: false,
-        currentEnemy: nextEnemy,
+        currentEnemies: nextEnemies,
         playerCurrentHp: calc.hp,
         playerMaxHp: calc.hp,
         logs: [...logsToAdd, ...state.logs].slice(0, 30),
@@ -488,7 +516,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     set({
-      currentEnemy: enemy,
+      currentEnemies: aliveEnemies,
       playerCurrentHp: newPlayerHp,
       playerMaxHp: calc.hp,
       skill1Cooldown: newSkill1Cd,
@@ -664,7 +692,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentBiomeId: biomeId,
       biomeStage: 1,
       isFightingBoss: false,
-      currentEnemy: spawnEnemyForBiome(biomeId, difficulty, 1, false),
+      currentEnemies: spawnEnemiesForBiome(biomeId, difficulty, 1, false),
     });
   },
 
@@ -674,7 +702,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       difficulty: diff,
       biomeStage: 1,
       isFightingBoss: false,
-      currentEnemy: spawnEnemyForBiome(currentBiomeId, diff, 1, false),
+      currentEnemies: spawnEnemiesForBiome(currentBiomeId, diff, 1, false),
     });
   },
 
@@ -686,7 +714,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       biomeStage: 10,
       isFightingBoss: true,
-      currentEnemy: spawnEnemyForBiome(currentBiomeId, difficulty, 10, true),
+      currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, 10, true),
     });
   },
 

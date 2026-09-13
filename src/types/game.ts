@@ -44,6 +44,8 @@ export interface SkillData {
   atkBuffPct?: number;
   spdBuffPct?: number;
   defBuffPct?: number;
+  isAoE?: boolean; // Se ataca múltiplos alvos da horda ao mesmo tempo
+  maxTargets?: number; // Quantidade de inimigos atingidos pela área
 }
 
 export interface OwnedSkill {

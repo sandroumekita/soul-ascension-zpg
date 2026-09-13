@@ -7,7 +7,7 @@ import type { FloatingDamage } from '../types/game';
 export const BattleScreen: React.FC = () => {
   const {
     stats,
-    currentEnemy,
+    currentEnemies,
     playerCurrentHp,
     playerMaxHp,
     currentBiomeId,
@@ -27,9 +27,11 @@ export const BattleScreen: React.FC = () => {
 
   const [floatingDamages, setFloatingDamages] = useState<FloatingDamage[]>([]);
 
-  // Monitora alterações na vida do inimigo para gerar números de dano flutuantes e feedback de morte
+  const primaryEnemy = currentEnemies[0];
+
+  // Monitora alterações na vida do inimigo primário para gerar números de dano flutuantes e feedback de morte
   useEffect(() => {
-    if (!currentEnemy) return;
+    if (!primaryEnemy) return;
     
     // Dispara animação de número flutuante de dano quando o mob recebe um golpe
     const newDmg: FloatingDamage = {
@@ -47,11 +49,10 @@ export const BattleScreen: React.FC = () => {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [currentEnemy?.currentHp]);
+  }, [primaryEnemy?.currentHp]);
 
   const currentBiome = BIOMES_CATALOG.find((b) => b.id === currentBiomeId) || BIOMES_CATALOG[0];
 
-  const enemyHpPct = currentEnemy ? Math.max(0, Math.min(100, (currentEnemy.currentHp / currentEnemy.maxHp) * 100)) : 0;
   const playerHpPct = Math.max(0, Math.min(100, (playerCurrentHp / playerMaxHp) * 100));
 
   // Cálculo de DPS Estimado em Tempo Real
@@ -135,17 +136,17 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Arena de Batalha (Inimigo vs Shinigami) */}
+      {/* Arena de Batalha (Horda de Inimigos vs Shinigami) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
-        {/* Visual do Inimigo / Hollow Ativo da Horda */}
-        <div className="bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden hover:border-red-500 transition duration-300">
+        {/* Visual dos Inimigos Ativos da Horda */}
+        <div className="bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col justify-between relative overflow-hidden hover:border-red-500 transition duration-300 min-h-[220px]">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
           
           {/* Números Flutuantes de Dano Animados */}
           {floatingDamages.map((dmg) => (
             <div
               key={dmg.id}
-              className={`absolute top-12 font-extrabold text-sm pointer-events-none animate-float-damage ${
+              className={`absolute top-12 font-extrabold text-sm pointer-events-none animate-float-damage z-10 ${
                 dmg.isCrit ? 'text-amber-400 text-lg shadow-red-500' : 'text-red-400'
               }`}
               style={{ left: `calc(50% + ${dmg.xOffset}px)` }}
@@ -154,31 +155,42 @@ export const BattleScreen: React.FC = () => {
             </div>
           ))}
 
-          <div className="w-full flex justify-between items-center mb-3">
-            <span className={`font-extrabold ${currentEnemy?.isBoss ? 'text-amber-400 text-lg' : 'text-red-400 text-base'}`}>
-              {currentEnemy?.name}
-            </span>
-            <span className="text-xs font-mono text-gray-300 bg-red-950/60 px-2.5 py-0.5 rounded border border-red-800 font-bold">
-              {currentEnemy?.currentHp} / {currentEnemy?.maxHp} HP
-            </span>
+          <div className="text-xs font-bold text-red-400 mb-2 uppercase tracking-wider flex items-center justify-between">
+            <span>Horda Hollow Inimiga ({currentEnemies.length} {currentEnemies.length === 1 ? 'mob' : 'mobs'})</span>
+            {currentEnemies.length > 1 && <span className="text-[10px] bg-red-950 px-2 py-0.5 rounded border border-red-800 text-amber-300">💥 Ataques AoE Ativos</span>}
           </div>
 
-          {/* Avatar Icon do Mob Ativo da Horda */}
-          <div className="my-4 p-6 bg-gradient-to-b from-red-950/50 to-black rounded-full border border-red-500/40 shadow-2xl text-4xl animate-bounce relative">
-            {currentEnemy?.avatarIcon || '💀'}
+          {/* Cards dos Mobs Simultâneos */}
+          <div className="grid grid-cols-1 gap-2.5 my-auto">
+            {currentEnemies.map((enemy, idx) => {
+              const enemyHpPct = Math.max(0, Math.min(100, (enemy.currentHp / enemy.maxHp) * 100));
+              return (
+                <div key={enemy.id} className={`p-2.5 rounded-xl border backdrop-blur-md transition ${idx === 0 ? 'bg-red-950/40 border-red-500/60 shadow-md' : 'bg-black/40 border-white/10 opacity-80'}`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className={`font-extrabold text-xs flex items-center gap-1.5 ${enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
+                      <span>{enemy.avatarIcon || '💀'}</span>
+                      {enemy.name} {idx === 0 && <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded">ALVO REPO</span>}
+                    </span>
+                    <span className="text-[10px] font-mono text-gray-300 bg-black/60 px-2 py-0.5 rounded border border-white/10">
+                      {enemy.currentHp} / {enemy.maxHp} HP
+                    </span>
+                  </div>
+
+                  {/* Barra de Vida individual */}
+                  <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner">
+                    <div
+                      className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-150"
+                      style={{ width: `${enemyHpPct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Barra de Vida Inimigo com animação responsiva */}
-          <div className="w-full bg-slate-900 h-5 rounded-full overflow-hidden border border-red-900/60 p-0.5 mb-3 shadow-inner">
-            <div
-              className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-150"
-              style={{ width: `${enemyHpPct}%` }}
-            />
-          </div>
-
-          <div className="flex gap-4 text-xs font-semibold text-gray-300 bg-black/40 px-4 py-1.5 rounded-full border border-white/5">
-            <span className="flex items-center gap-1.5"><Zap size={14} className="text-amber-400" /> ATK: {currentEnemy?.atk}</span>
-            <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-400" /> DEF: {currentEnemy?.def}</span>
+          <div className="flex justify-center gap-4 text-xs font-semibold text-gray-300 bg-black/40 px-4 py-1.5 rounded-full border border-white/5 mt-3">
+            <span className="flex items-center gap-1.5"><Zap size={14} className="text-amber-400" /> ATK: {primaryEnemy?.atk || 0}</span>
+            <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-400" /> DEF: {primaryEnemy?.def || 0}</span>
           </div>
         </div>
 

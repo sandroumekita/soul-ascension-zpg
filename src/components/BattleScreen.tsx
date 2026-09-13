@@ -70,18 +70,13 @@ export const BattleScreen: React.FC = () => {
             </div>
           </div>
 
-          {!isFightingBoss && (
+          {!isFightingBoss && canChallengeBoss && (
             <button
               onClick={challengeBoss}
-              disabled={!canChallengeBoss}
-              className={`text-xs px-4 py-1.5 font-bold rounded-lg shadow-lg transition flex items-center gap-1.5 ${
-                canChallengeBoss
-                  ? 'bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white animate-pulse cursor-pointer hover:scale-105 active:scale-95'
-                  : 'bg-gray-900 border border-gray-700 text-gray-500 cursor-not-allowed opacity-60'
-              }`}
-              title={canChallengeBoss ? 'Desafiar Boss da Fase 10!' : 'Chegue ao Estágio 9 para liberar o Boss!'}
+              className="text-xs px-4 py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition flex items-center gap-1.5 animate-pulse cursor-pointer hover:scale-105 active:scale-95"
+              title="Desafiar Boss da Fase 10!"
             >
-              <Skull size={15} /> {canChallengeBoss ? 'Desafiar Boss!' : 'Boss (Requer Estágio 9)'}
+              <Skull size={15} /> Desafiar Boss!
             </button>
           )}
           {isFightingBoss && (

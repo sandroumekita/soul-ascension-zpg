@@ -20,6 +20,7 @@ export const BattleScreen: React.FC = () => {
     autoAdvance,
     logs,
     challengeBoss,
+    selectStage,
     toggleAutoAdvance,
     skill1Cooldown,
     skill2Cooldown,
@@ -128,20 +129,26 @@ export const BattleScreen: React.FC = () => {
           <Swords size={15} className="text-red-400" /> Progresso da Horda:
         </div>
         <div className="flex gap-1.5 sm:gap-2 items-center w-full sm:w-auto justify-between">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((stageNum) => (
-            <div
-              key={stageNum}
-              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] font-mono font-bold border transition ${
-                stageNum < biomeStage
-                  ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400'
-                  : stageNum === biomeStage
-                  ? 'bg-gradient-to-r from-amber-500 to-red-600 border-white text-white scale-110 shadow-lg shadow-amber-500/50 animate-pulse'
-                  : 'bg-slate-950 border-slate-800 text-slate-600'
-              }`}
-            >
-              {stageNum === 10 ? '👑' : stageNum}
-            </div>
-          ))}
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((stageNum) => {
+            const isCompleted = stageNum < biomeStage;
+            const isCurrent = stageNum === biomeStage;
+            return (
+              <button
+                key={stageNum}
+                onClick={() => selectStage(stageNum)}
+                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] font-mono font-bold border transition cursor-pointer hover:scale-115 active:scale-95 ${
+                  isCompleted
+                    ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400 hover:bg-emerald-800'
+                    : isCurrent
+                    ? 'bg-gradient-to-r from-amber-500 to-red-600 border-white text-white scale-110 shadow-lg shadow-amber-500/50 animate-pulse'
+                    : 'bg-slate-950 border-slate-800 text-slate-600 hover:border-slate-600'
+                }`}
+                title={`Ir para o Estágio ${stageNum}`}
+              >
+                {stageNum === 10 ? '👑' : stageNum}
+              </button>
+            );
+          })}
         </div>
       </div>
 

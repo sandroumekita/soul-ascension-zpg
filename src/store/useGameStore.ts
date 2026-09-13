@@ -62,6 +62,7 @@ interface GameState {
   craftRecipe: (recipeId: string) => boolean;
   equipSkill: (skillId: string, slot: 1 | 2) => void;
   summonGacha: (costOrbs: number) => { item?: Equipment; skill?: string; isDuplicate: boolean };
+  selectStage: (targetStage: number) => void;
   changeBiome: (biomeId: string) => void;
   changeDifficulty: (diff: Difficulty) => void;
   challengeBoss: () => void;
@@ -864,6 +865,18 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       return { item: newEquip, isDuplicate: false };
     }
+  },
+
+  selectStage: (targetStage: number) => {
+    const { currentBiomeId, difficulty } = get();
+    if (targetStage < 1 || targetStage > 10) return;
+
+    const isBoss = targetStage === 10;
+    set({
+      biomeStage: targetStage,
+      isFightingBoss: isBoss,
+      currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, targetStage, isBoss),
+    });
   },
 
   changeBiome: (biomeId: string) => {

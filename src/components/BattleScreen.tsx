@@ -202,10 +202,10 @@ export const BattleScreen: React.FC = () => {
             )}
           </div>
 
-          {/* Área Central Estável dos Mobs (Slots Pré-alocados para evitar trepidação) */}
-          <div className="flex flex-col justify-center gap-2.5 my-auto min-h-[170px] relative">
+          {/* Área Central Estável dos Mobs (3 Slots Fixos Pré-alocados para Garantir 0 CLS) */}
+          <div className="flex flex-col justify-start gap-2 my-auto h-[195px] relative overflow-hidden">
             {/* Números Flutuantes de Dano posicionados com precisão */}
-            <div className="absolute -top-4 left-0 right-0 flex justify-center pointer-events-none z-30">
+            <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-30">
               {floatingDamages.map((dmg) => (
                 <div
                   key={dmg.id}
@@ -219,35 +219,47 @@ export const BattleScreen: React.FC = () => {
               ))}
             </div>
 
-            {/* Mobs da Horda */}
-            {currentEnemies.map((enemy, idx) => {
+            {/* Mobs da Horda - Renderiza sempre 3 slots fixos para nunca alterar a altura */}
+            {[0, 1, 2].map((slotIndex) => {
+              const enemy = currentEnemies[slotIndex];
+              if (!enemy) {
+                return (
+                  <div
+                    key={`empty_slot_${slotIndex}`}
+                    className="h-[58px] rounded-xl border border-dashed border-slate-950 bg-black/10 opacity-30 flex items-center justify-center text-[10px] text-slate-700 font-mono"
+                  >
+                    -- Slot Vazio --
+                  </div>
+                );
+              }
+
               const enemyHpPct = Math.max(0, Math.min(100, (enemy.currentHp / enemy.maxHp) * 100));
               return (
                 <div
                   key={enemy.id}
-                  className={`p-2.5 rounded-xl border backdrop-blur-md transition-all duration-150 ${
-                    idx === 0
+                  className={`h-[58px] p-2 rounded-xl border backdrop-blur-md transition-all duration-150 flex flex-col justify-between ${
+                    slotIndex === 0
                       ? 'bg-red-950/50 border-red-500/70 shadow-lg scale-[1.01]'
                       : 'bg-black/40 border-slate-800 opacity-75'
                   }`}
                 >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className={`font-extrabold text-xs flex items-center gap-2 ${enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`font-extrabold text-xs flex items-center gap-1.5 ${enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
                       <PixelMobSprite icon={enemy.avatarIcon || '💀'} name={enemy.name} isBoss={enemy.isBoss} size="sm" />
-                      <span>{enemy.name}</span>
-                      {idx === 0 && (
-                        <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded font-mono">
+                      <span className="truncate max-w-[120px] sm:max-w-[150px]">{enemy.name}</span>
+                      {slotIndex === 0 && (
+                        <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded font-mono shrink-0">
                           ALVO
                         </span>
                       )}
                     </span>
-                    <span className="text-[10px] font-mono text-gray-300 bg-black/60 px-2 py-0.5 rounded border border-white/10">
+                    <span className="text-[10px] font-mono text-gray-300 bg-black/60 px-2 py-0.5 rounded border border-white/10 shrink-0">
                       {enemy.currentHp} / {enemy.maxHp} HP
                     </span>
                   </div>
 
                   {/* Barra de Vida individual */}
-                  <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner">
+                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner">
                     <div
                       className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-150"
                       style={{ width: `${enemyHpPct}%` }}

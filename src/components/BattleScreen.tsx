@@ -3,6 +3,7 @@ import { useGameStore } from '../store/useGameStore';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
 import { GAME_THEME } from '../config/themeConfig';
 import { HeroAvatarPixel } from './HeroAvatarPixel';
+import { PixelMobSprite } from './PixelMobSprite';
 import { Shield, Zap, Sparkles, Skull, Crown, Flame, Swords } from 'lucide-react';
 import type { FloatingDamage } from '../types/game';
 
@@ -181,9 +182,10 @@ export const BattleScreen: React.FC = () => {
               return (
                 <div key={enemy.id} className={`p-2.5 rounded-xl border backdrop-blur-md transition ${idx === 0 ? 'bg-red-950/40 border-red-500/60 shadow-md' : 'bg-black/40 border-white/10 opacity-80'}`}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className={`font-extrabold text-xs flex items-center gap-1.5 ${enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
-                      <span>{enemy.avatarIcon || '💀'}</span>
-                      {enemy.name} {idx === 0 && <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded">ALVO REPO</span>}
+                    <span className={`font-extrabold text-xs flex items-center gap-2 ${enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
+                      <PixelMobSprite icon={enemy.avatarIcon || '💀'} name={enemy.name} isBoss={enemy.isBoss} size="sm" />
+                      <span>{enemy.name}</span>
+                      {idx === 0 && <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded font-mono">ALVO REPO</span>}
                     </span>
                     <span className="text-[10px] font-mono text-gray-300 bg-black/60 px-2 py-0.5 rounded border border-white/10">
                       {enemy.currentHp} / {enemy.maxHp} HP

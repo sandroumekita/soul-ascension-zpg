@@ -325,16 +325,18 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
       }
 
-      // Generate Loot (4% Chance on regular enemies, 100% on Bosses)
+      // Generate Loot (3% Chance on regular enemies, 100% on Bosses)
       let newInventory = [...state.inventory];
-      if (enemy.isBoss || Math.random() < 0.04) {
+      if (enemy.isBoss || Math.random() < 0.03) {
         const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
         const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
         
-        // Taxas de raridade muito mais desafiadoras e valiosas
+        // Taxas de raridade EXTREMAMENTE DÍFICEIS e gratificantes:
+        // Boss: 70% Normal, 22% Raro, 6.5% Épico, 1.4% Lendário, 0.1% Transcendente
+        // Normal: 92% Normal, 7% Raro, 0.9% Épico, 0.09% Lendário, 0.01% Transcendente
         const rarityWeights = enemy.isBoss 
-          ? [0.45, 0.35, 0.15, 0.04, 0.01]   // Boss: 45% Normal, 35% Raro, 15% Épico, 4% Lendário, 1% Transcendente
-          : [0.80, 0.15, 0.04, 0.009, 0.001]; // Normal: 80% Normal, 15% Raro, 4% Épico, 0.9% Lendário, 0.1% Transcendente
+          ? [0.70, 0.22, 0.065, 0.014, 0.001]   
+          : [0.92, 0.07, 0.009, 0.0009, 0.0001]; 
         
         const rand = Math.random();
         let cumulative = 0;
@@ -606,15 +608,30 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { skill: randomSkill.name, isDuplicate: isDup };
     } else {
       const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
-      const rarities: Rarity[] = ['rare', 'epic', 'legendary', 'transcendent'];
-      const rarity = rarities[Math.floor(Math.random() * rarities.length)];
-      const mult = RARITY_MULTIPLIERS[rarity];
+      
+      // Taxas de Gacha de alta raridade (Gacha realista):
+      // Normal: 52.8%, Raro: 35%, Épico: 10%, Lendário: 2.0%, Transcendente: 0.2%
+      const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
+      const gachaWeights = [0.528, 0.35, 0.10, 0.02, 0.002];
+
+      const rand = Math.random();
+      let cumulative = 0;
+      let selectedRarity: Rarity = 'normal';
+      for (let i = 0; i < rarities.length; i++) {
+        cumulative += gachaWeights[i];
+        if (rand <= cumulative) {
+          selectedRarity = rarities[i];
+          break;
+        }
+      }
+
+      const mult = RARITY_MULTIPLIERS[selectedRarity];
 
       const newEquip: Equipment = {
         instanceId: `gacha_${Date.now()}`,
         weaponId: weaponTemplate.id,
-        name: `${weaponTemplate.name} (${rarity.toUpperCase()})`,
-        rarity,
+        name: `${weaponTemplate.name} (${selectedRarity.toUpperCase()})`,
+        rarity: selectedRarity,
         slot: 'weapon',
         atk: Math.round(weaponTemplate.baseAtk * mult),
         hp: 0,

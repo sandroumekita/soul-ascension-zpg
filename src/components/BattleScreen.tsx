@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
+import { GAME_THEME } from '../config/themeConfig';
 import { Shield, Zap, Sparkles, Skull, Crown, Activity, Flame, Swords } from 'lucide-react';
 import type { FloatingDamage } from '../types/game';
 
@@ -156,7 +157,7 @@ export const BattleScreen: React.FC = () => {
           ))}
 
           <div className="text-xs font-bold text-red-400 mb-2 uppercase tracking-wider flex items-center justify-between">
-            <span>Horda Hollow Inimiga ({currentEnemies.length} {currentEnemies.length === 1 ? 'mob' : 'mobs'})</span>
+            <span>{GAME_THEME.enemyFactionName} ({currentEnemies.length} {currentEnemies.length === 1 ? 'mob' : 'mobs'})</span>
             {currentEnemies.length > 1 && <span className="text-[10px] bg-red-950 px-2 py-0.5 rounded border border-red-800 text-amber-300">💥 Ataques AoE Ativos</span>}
           </div>
 
@@ -194,20 +195,20 @@ export const BattleScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Visual do Shinigami (Player) */}
+        {/* Visual do Personagem Principal (Player) */}
         <div className="bg-slate-950/80 p-5 rounded-2xl border border-cyan-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden hover:border-cyan-400 transition duration-300">
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="w-full flex justify-between items-center mb-3">
             <span className="font-extrabold text-cyan-300 text-base flex items-center gap-1.5">
-              <Sparkles size={18} className="text-cyan-400" /> Shinigami Substituto
+              <Sparkles size={18} className="text-cyan-400" /> {GAME_THEME.heroTitle}
             </span>
             <span className="text-xs font-mono text-cyan-200 bg-cyan-950/60 px-2.5 py-0.5 rounded border border-cyan-800 font-bold">
               {playerCurrentHp} / {playerMaxHp} HP
             </span>
           </div>
 
-          {/* Avatar do Shinigami */}
+          {/* Avatar do Player */}
           <div className="my-4 p-5 bg-gradient-to-b from-cyan-950/40 to-black rounded-full border border-cyan-500/30 text-cyan-400 shadow-2xl animate-pulse">
             <Activity size={48} />
           </div>
@@ -234,7 +235,7 @@ export const BattleScreen: React.FC = () => {
         {/* Slot 1 Skill */}
         <div className="bg-black/60 p-3.5 rounded-xl border border-purple-500/40 flex items-center justify-between backdrop-blur-md">
           <div>
-            <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">Slot 1: Habilidade Ativa</div>
+            <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">{GAME_THEME.skillSlot1Label}</div>
             <div className="text-sm font-extrabold text-white mt-0.5">
               {equippedSlot1SkillId || 'Nenhuma'}
             </div>
@@ -250,10 +251,10 @@ export const BattleScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Slot 2 Bankai */}
+        {/* Slot 2 Ultimate */}
         <div className="bg-black/60 p-3.5 rounded-xl border border-amber-500/40 flex items-center justify-between backdrop-blur-md">
           <div>
-            <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Slot 2: Modo Bankai</div>
+            <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">{GAME_THEME.skillSlot2Label}</div>
             <div className="text-sm font-extrabold text-white mt-0.5">
               {equippedSlot2SkillId || 'Nenhuma'}
             </div>

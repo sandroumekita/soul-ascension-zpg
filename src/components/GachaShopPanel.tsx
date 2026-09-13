@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { GAME_THEME } from '../config/themeConfig';
 import { Gem, Sparkles, Gift } from 'lucide-react';
 
 export const GachaShopPanel: React.FC = () => {
@@ -7,8 +8,8 @@ export const GachaShopPanel: React.FC = () => {
   const [resultMessage, setResultMessage] = useState<string | null>(null);
 
   const handleSummon = (cost: number) => {
-    if (stats.soulOrbs < cost) {
-      setResultMessage('❌ Soul Orbs insuficientes! Derrote Bosses para ganhar mais!');
+    if (stats.gems < cost) {
+      setResultMessage(`❌ ${GAME_THEME.premiumCurrencyName} insuficientes! Derrote Bosses para ganhar mais!`);
       return;
     }
 
@@ -16,7 +17,7 @@ export const GachaShopPanel: React.FC = () => {
     if (res.skill) {
       setResultMessage(`🌟 INVOCAÇÃO ESPIRITUAL! Você obteve a Habilidade: ${res.skill} ${res.isDuplicate ? '(Nível Aumentado!)' : ''}`);
     } else if (res.item) {
-      setResultMessage(`🎁 BAÚ MÍSTICO! Você encontrou a Zanpakuto: ${res.item.name}!`);
+      setResultMessage(`🎁 BAÚ MÍSTICO! Você encontrou: ${res.item.name}!`);
     }
   };
 
@@ -27,10 +28,10 @@ export const GachaShopPanel: React.FC = () => {
           <h3 className="text-base font-bold text-purple-400 flex items-center gap-2">
             <Sparkles size={18} /> Invocação Espiritual & Loja Gacha
           </h3>
-          <p className="text-xs text-gray-400">Invoque novas Bankais e Baús Místicos com Soul Orbs</p>
+          <p className="text-xs text-gray-400">Invoque novas Habilidades e Baús Místicos com {GAME_THEME.premiumCurrencyName}</p>
         </div>
         <div className="bg-purple-950/80 px-3 py-1.5 rounded border border-purple-500 text-purple-300 font-mono text-sm flex items-center gap-1 font-bold">
-          <Gem size={16} className="text-purple-400" /> {stats.soulOrbs} Orbs
+          <Gem size={16} className="text-purple-400" /> {stats.gems} {GAME_THEME.premiumCurrencyName}
         </div>
       </div>
 

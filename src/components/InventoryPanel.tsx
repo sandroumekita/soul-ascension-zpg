@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { RARITY_COLORS } from '../data/gameCatalog';
+import { GAME_THEME } from '../config/themeConfig';
 import { Sword, Trash2, CheckCircle, Sparkles } from 'lucide-react';
 
 export const InventoryPanel: React.FC = () => {
@@ -10,7 +11,7 @@ export const InventoryPanel: React.FC = () => {
     <div className="bg-slate-900/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-4 shadow-2xl backdrop-blur-md">
       <div className="flex justify-between items-center">
         <h3 className="text-base font-extrabold flex items-center gap-2 text-amber-400">
-          <Sword size={18} /> Equipamentos & Inventário de Zanpakuto
+          <Sword size={18} /> Equipamentos & Inventário de {GAME_THEME.weaponTerm}
         </h3>
         {inventory.length > 0 && (
           <button
@@ -24,7 +25,7 @@ export const InventoryPanel: React.FC = () => {
 
       {/* Item Equipado no momento */}
       <div className="bg-black/50 p-3 rounded-lg border border-amber-500/40">
-        <div className="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-2">Zanpakuto Equipada</div>
+        <div className="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-2">{GAME_THEME.weaponTerm} Equipada</div>
         {equippedWeapon ? (
           <div className="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800">
             <div>
@@ -44,7 +45,7 @@ export const InventoryPanel: React.FC = () => {
           </div>
         ) : (
           <div className="text-xs text-gray-500 italic p-3 text-center bg-slate-950/50 rounded border border-dashed border-gray-800">
-            Nenhuma Zanpakuto equipada no momento.
+            Nenhuma {GAME_THEME.weaponTerm} equipada no momento.
           </div>
         )}
       </div>
@@ -59,7 +60,7 @@ export const InventoryPanel: React.FC = () => {
 
         {inventory.length === 0 ? (
           <div className="text-xs text-gray-500 italic text-center p-6 bg-black/30 rounded-lg border border-white/5">
-            Seu inventário está vazio. Derrote Hollows e Bosses para encontrar loots épicos e transcendentes!
+            Seu inventário está vazio. Derrote inimigos para encontrar loots épicos e transcendentes!
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto pr-1">
@@ -84,7 +85,7 @@ export const InventoryPanel: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-300 mt-1 flex gap-3 font-mono">
                       <span>ATK: <strong className="text-red-400">+{item.atk}</strong></span>
-                      <span>Valor: <strong className="text-amber-400">{item.sellPrice} Reiryoku</strong></span>
+                      <span>Valor: <strong className="text-amber-400">{item.sellPrice} {GAME_THEME.currencyName}</strong></span>
                     </div>
                   </div>
 

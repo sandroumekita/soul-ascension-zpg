@@ -41,9 +41,9 @@ interface GameState {
   
   inventory: Equipment[];
   craftingMaterials: {
-    reishiFragments: number;
-    ironOre: number;
-    spiritEssence: number;
+    material1: number;
+    material2: number;
+    material3: number;
   };
   ownedSkills: Record<string, OwnedSkill>; // skillId -> OwnedSkill
   
@@ -77,8 +77,8 @@ const INITIAL_STATS: CharacterStats = {
   baseDef: 5,
   baseHp: 100,
   baseSpd: 1.0, // 1 ataque por segundo
-  reiryoku: 200,
-  soulOrbs: 100, // Moeda Premium inicial
+  gold: 200,
+  gems: 100, // Moeda Premium inicial
   prestigeRank: 0,
 };
 
@@ -216,9 +216,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   inventory: [],
   craftingMaterials: {
-    reishiFragments: 20,
-    ironOre: 10,
-    spiritEssence: 2,
+    material1: 20,
+    material2: 10,
+    material3: 2,
   },
   ownedSkills: {
     getsuga_tensho: { skillId: 'getsuga_tensho', level: 1, unlocked: true },
@@ -365,7 +365,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (e.isBoss) wasBossDefeated = true;
       });
 
-      let newStats = { ...state.stats, exp: state.stats.exp + totalExpGained, reiryoku: state.stats.reiryoku + totalGoldGained };
+      let newStats = { ...state.stats, exp: state.stats.exp + totalExpGained, gold: state.stats.gold + totalGoldGained };
 
       // Check Level Up
       if (newStats.exp >= newStats.nextLevelExp) {
@@ -618,7 +618,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set({
       inventory: inventory.filter((i) => i.instanceId !== instanceId),
-      stats: { ...stats, reiryoku: stats.reiryoku + item.sellPrice },
+      stats: { ...stats, gold: stats.gold + item.sellPrice },
     });
   },
 
@@ -628,32 +628,32 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!item) return;
 
     // Converte o item em materiais baseados na raridade
-    let fragmentsGained = 2;
-    let ironGained = 1;
-    let essenceGained = 0;
+    let mat1Gained = 2;
+    let mat2Gained = 1;
+    let mat3Gained = 0;
 
     if (item.rarity === 'rare') {
-      fragmentsGained = 5;
-      ironGained = 3;
+      mat1Gained = 5;
+      mat2Gained = 3;
     } else if (item.rarity === 'epic') {
-      fragmentsGained = 12;
-      ironGained = 6;
-      essenceGained = 1;
+      mat1Gained = 12;
+      mat2Gained = 6;
+      mat3Gained = 1;
     } else if (item.rarity === 'legendary' || item.rarity === 'transcendent') {
-      fragmentsGained = 30;
-      ironGained = 15;
-      essenceGained = 3;
+      mat1Gained = 30;
+      mat2Gained = 15;
+      mat3Gained = 3;
     }
 
     const updatedMaterials = {
-      reishiFragments: craftingMaterials.reishiFragments + fragmentsGained,
-      ironOre: craftingMaterials.ironOre + ironGained,
-      spiritEssence: craftingMaterials.spiritEssence + essenceGained,
+      material1: craftingMaterials.material1 + mat1Gained,
+      material2: craftingMaterials.material2 + mat2Gained,
+      material3: craftingMaterials.material3 + mat3Gained,
     };
 
     const newLog: BattleLogMessage = {
       id: `log_salvage_${Date.now()}`,
-      text: `♻️ ITEM DESMONTADO: ${item.name} gerou +${fragmentsGained} Reishi, +${ironGained} Minério!`,
+      text: `♻️ ITEM DESMONTADO: ${item.name} gerou +${mat1Gained} Mat.1, +${mat2Gained} Mat.2!`,
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     };
@@ -672,10 +672,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Verificar se possui recursos suficientes
     if (
-      craftingMaterials.reishiFragments < recipe.requiredReishiFragments ||
-      craftingMaterials.ironOre < recipe.requiredIronOre ||
-      craftingMaterials.spiritEssence < recipe.requiredSpiritEssence ||
-      stats.reiryoku < recipe.goldCost
+      craftingMaterials.material1 < recipe.requiredMaterial1 ||
+      craftingMaterials.material2 < recipe.requiredMaterial2 ||
+      craftingMaterials.material3 < recipe.requiredMaterial3 ||
+      stats.gold < recipe.goldCost
     ) {
       return false;
     }
@@ -698,9 +698,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
 
     const newMaterials = {
-      reishiFragments: craftingMaterials.reishiFragments - recipe.requiredReishiFragments,
-      ironOre: craftingMaterials.ironOre - recipe.requiredIronOre,
-      spiritEssence: craftingMaterials.spiritEssence - recipe.requiredSpiritEssence,
+      material1: craftingMaterials.material1 - recipe.requiredMaterial1,
+      material2: craftingMaterials.material2 - recipe.requiredMaterial2,
+      material3: craftingMaterials.material3 - recipe.requiredMaterial3,
     };
 
     const newLog: BattleLogMessage = {
@@ -712,7 +712,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set({
       craftingMaterials: newMaterials,
-      stats: { ...stats, reiryoku: stats.reiryoku - recipe.goldCost },
+      stats: { ...stats, gold: stats.gold - recipe.goldCost },
       inventory: [...inventory, newEquip],
       logs: [newLog, ...logs.slice(0, 49)],
     });
@@ -727,9 +727,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   summonGacha: (costOrbs: number) => {
     const { stats, ownedSkills, inventory } = get();
-    if (stats.soulOrbs < costOrbs) return { isDuplicate: false };
+    if (stats.gems < costOrbs) return { isDuplicate: false };
 
-    const newOrbs = stats.soulOrbs - costOrbs;
+    const newOrbs = stats.gems - costOrbs;
     const isSkillDrop = Math.random() < 0.5;
 
     if (isSkillDrop) {
@@ -747,7 +747,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
 
       set({
-        stats: { ...stats, soulOrbs: newOrbs },
+        stats: { ...stats, gems: newOrbs },
         ownedSkills: updatedOwned,
       });
 
@@ -788,7 +788,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
 
       set({
-        stats: { ...stats, soulOrbs: newOrbs },
+        stats: { ...stats, gems: newOrbs },
         inventory: [...inventory, newEquip],
       });
 

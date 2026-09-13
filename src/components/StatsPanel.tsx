@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { GAME_THEME } from '../config/themeConfig';
 import { Shield, Zap, Heart, Activity, PlusCircle, Coins, Gem, Sparkles } from 'lucide-react';
 
 export const StatsPanel: React.FC = () => {
@@ -7,10 +8,10 @@ export const StatsPanel: React.FC = () => {
 
   return (
     <div className="bg-slate-900/90 text-white p-4 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-xl">
-      {/* Header do Shinigami */}
+      {/* Header do Heroi */}
       <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/10">
         <div>
-          <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider">Shinigami Substituto</div>
+          <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider">{GAME_THEME.heroTitle}</div>
           <div className="text-xl font-bold flex items-center gap-2">
             Nível {stats.level}
             <span className="text-xs text-gray-400 font-normal">
@@ -20,10 +21,10 @@ export const StatsPanel: React.FC = () => {
         </div>
         <div className="flex gap-3 text-right">
           <div className="bg-amber-950/60 px-3 py-1 rounded border border-amber-500/40 text-amber-300 font-mono text-xs flex items-center gap-1">
-            <Coins size={14} className="text-amber-400" /> {stats.reiryoku}
+            <Coins size={14} className="text-amber-400" /> {stats.gold}
           </div>
           <div className="bg-purple-950/60 px-3 py-1 rounded border border-purple-500/40 text-purple-300 font-mono text-xs flex items-center gap-1">
-            <Gem size={14} className="text-purple-400" /> {stats.soulOrbs}
+            <Gem size={14} className="text-purple-400" /> {stats.gems}
           </div>
         </div>
       </div>

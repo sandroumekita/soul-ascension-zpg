@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from './store/useGameStore';
+import { GAME_THEME } from './config/themeConfig';
 import { BattleScreen } from './components/BattleScreen';
 import { StatsPanel } from './components/StatsPanel';
 import { InventoryPanel } from './components/InventoryPanel';
@@ -47,18 +48,18 @@ export const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-extrabold bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
-              Soul Ascension
+              {GAME_THEME.gameTitle}
             </h1>
-            <p className="text-xs text-gray-400 font-mono">Bleach Auto-RPG (ZPG)</p>
+            <p className="text-xs text-gray-400 font-mono">{GAME_THEME.subTitle}</p>
           </div>
         </div>
 
         <button
           onClick={resetSave}
           className="text-xs text-gray-400 hover:text-red-400 transition flex items-center gap-1 bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 hover:border-red-500/50 cursor-pointer"
-          title="Reiniciar Progresso"
+          title={GAME_THEME.resetSaveText}
         >
-          <RefreshCw size={12} /> Reset Save
+          <RefreshCw size={12} /> {GAME_THEME.resetSaveText}
         </button>
       </header>
 

@@ -105,9 +105,9 @@ export interface CharacterStats {
   baseDef: number;
   baseHp: number;
   baseSpd: number; // ataques por segundo (e.g. 1.0)
-  reiryoku: number; // Gold
-  soulOrbs: number; // Moeda Premium
-  prestigeRank: number; // Quantidade de Hogyoku Fragments
+  gold: number; // Moeda padrão do jogo
+  gems: number; // Moeda premium do jogo
+  prestigeRank: number; // Rank de Prestige
 }
 
 export interface BattleLogMessage {
@@ -131,15 +131,16 @@ export interface CraftingRecipe {
   resultRarity: Rarity;
   name: string;
   description: string;
-  requiredReishiFragments: number;
-  requiredIronOre: number;
-  requiredSpiritEssence: number;
+  requiredMaterial1: number;
+  requiredMaterial2: number;
+  requiredMaterial3: number;
   goldCost: number;
 }
 
 export interface CraftingMaterials {
-  reishiFragments: number;
-  ironOre: number;
-  spiritEssence: number;
+  material1: number;
+  material2: number;
+  material3: number;
 }
+
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { CRAFTING_RECIPES_CATALOG, RARITY_COLORS } from '../data/gameCatalog';
+import { GAME_THEME } from '../config/themeConfig';
 import { Hammer, Flame } from 'lucide-react';
 
 export const CraftingPanel: React.FC = () => {
@@ -16,33 +17,33 @@ export const CraftingPanel: React.FC = () => {
           </div>
           <div>
             <h3 className="text-base font-extrabold text-amber-400 flex items-center gap-2">
-              Forja de Receitas Zanpakuto
+              Forja de Receitas {GAME_THEME.weaponTerm}
             </h3>
-            <p className="text-xs text-gray-400">Combine materiais de Reishi e minérios para forjar equipamentos garantidos.</p>
+            <p className="text-xs text-gray-400">Combine materiais para forjar equipamentos garantidos com status superiores.</p>
           </div>
         </div>
       </div>
 
       {/* Painel de Materiais do Jogador */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-black/50 p-3 rounded-xl border border-cyan-500/30 flex flex-col items-center">
-          <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">Fragmentos Reishi</span>
+        <div className="bg-black/50 p-3 rounded-xl border border-cyan-500/30 flex flex-col items-center text-center">
+          <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">{GAME_THEME.material1Name}</span>
           <span className="text-lg font-mono font-extrabold text-cyan-300 mt-0.5">
-            💎 {craftingMaterials.reishiFragments}
+            {GAME_THEME.material1Icon} {craftingMaterials.material1}
           </span>
         </div>
 
-        <div className="bg-black/50 p-3 rounded-xl border border-amber-500/30 flex flex-col items-center">
-          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Minério de Ferro</span>
+        <div className="bg-black/50 p-3 rounded-xl border border-amber-500/30 flex flex-col items-center text-center">
+          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">{GAME_THEME.material2Name}</span>
           <span className="text-lg font-mono font-extrabold text-amber-300 mt-0.5">
-            🪨 {craftingMaterials.ironOre}
+            {GAME_THEME.material2Icon} {craftingMaterials.material2}
           </span>
         </div>
 
-        <div className="bg-black/50 p-3 rounded-xl border border-purple-500/30 flex flex-col items-center">
-          <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">Essência Espiritual</span>
+        <div className="bg-black/50 p-3 rounded-xl border border-purple-500/30 flex flex-col items-center text-center">
+          <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">{GAME_THEME.material3Name}</span>
           <span className="text-lg font-mono font-extrabold text-purple-300 mt-0.5">
-            🔮 {craftingMaterials.spiritEssence}
+            {GAME_THEME.material3Icon} {craftingMaterials.material3}
           </span>
         </div>
       </div>
@@ -57,10 +58,10 @@ export const CraftingPanel: React.FC = () => {
           {CRAFTING_RECIPES_CATALOG.map((recipe) => {
             const rarityStyle = RARITY_COLORS[recipe.resultRarity as keyof typeof RARITY_COLORS] || RARITY_COLORS.normal;
             const canCraft =
-              craftingMaterials.reishiFragments >= recipe.requiredReishiFragments &&
-              craftingMaterials.ironOre >= recipe.requiredIronOre &&
-              craftingMaterials.spiritEssence >= recipe.requiredSpiritEssence &&
-              stats.reiryoku >= recipe.goldCost;
+              craftingMaterials.material1 >= recipe.requiredMaterial1 &&
+              craftingMaterials.material2 >= recipe.requiredMaterial2 &&
+              craftingMaterials.material3 >= recipe.requiredMaterial3 &&
+              stats.gold >= recipe.goldCost;
 
             return (
               <div
@@ -80,44 +81,44 @@ export const CraftingPanel: React.FC = () => {
                   <div className="flex flex-wrap gap-2 text-[11px] font-mono">
                     <span
                       className={`px-2 py-0.5 rounded border ${
-                        craftingMaterials.reishiFragments >= recipe.requiredReishiFragments
+                        craftingMaterials.material1 >= recipe.requiredMaterial1
                           ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300'
                           : 'bg-red-950/60 border-red-500/50 text-red-400'
                       }`}
                     >
-                      Reishi: {craftingMaterials.reishiFragments}/{recipe.requiredReishiFragments}
+                      {GAME_THEME.material1Name}: {craftingMaterials.material1}/{recipe.requiredMaterial1}
                     </span>
 
                     <span
                       className={`px-2 py-0.5 rounded border ${
-                        craftingMaterials.ironOre >= recipe.requiredIronOre
+                        craftingMaterials.material2 >= recipe.requiredMaterial2
                           ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300'
                           : 'bg-red-950/60 border-red-500/50 text-red-400'
                       }`}
                     >
-                      Minério: {craftingMaterials.ironOre}/{recipe.requiredIronOre}
+                      {GAME_THEME.material2Name}: {craftingMaterials.material2}/{recipe.requiredMaterial2}
                     </span>
 
-                    {recipe.requiredSpiritEssence > 0 && (
+                    {recipe.requiredMaterial3 > 0 && (
                       <span
                         className={`px-2 py-0.5 rounded border ${
-                          craftingMaterials.spiritEssence >= recipe.requiredSpiritEssence
+                          craftingMaterials.material3 >= recipe.requiredMaterial3
                             ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300'
                             : 'bg-red-950/60 border-red-500/50 text-red-400'
                         }`}
                       >
-                        Essência: {craftingMaterials.spiritEssence}/{recipe.requiredSpiritEssence}
+                        {GAME_THEME.material3Name}: {craftingMaterials.material3}/{recipe.requiredMaterial3}
                       </span>
                     )}
 
                     <span
                       className={`px-2 py-0.5 rounded border ${
-                        stats.reiryoku >= recipe.goldCost
+                        stats.gold >= recipe.goldCost
                           ? 'bg-amber-950/60 border-amber-500/50 text-amber-300'
                           : 'bg-red-950/60 border-red-500/50 text-red-400'
                       }`}
                     >
-                      Reiryoku: {recipe.goldCost}
+                      {GAME_THEME.currencyName}: {recipe.goldCost}
                     </span>
                   </div>
                 </div>

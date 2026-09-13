@@ -2,7 +2,7 @@ import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
 import type { Difficulty } from '../types/game';
-import { MapPin, Lock, CheckCircle2, Trophy, ShieldAlert } from 'lucide-react';
+import { MapPin, Lock, CheckCircle2, Trophy, ShieldAlert, Swords, Skull, Flame, Sparkles } from 'lucide-react';
 
 export const WorldMapPanel: React.FC = () => {
   const {
@@ -15,36 +15,64 @@ export const WorldMapPanel: React.FC = () => {
     changeDifficulty,
   } = useGameStore();
 
-  const difficultiesList: { id: Difficulty; name: string; mult: string; color: string }[] = [
-    { id: 'normal', name: 'Normal', mult: '1.0x Dano/HP', color: 'border-gray-600 bg-gray-900/60 text-gray-300' },
-    { id: 'hard', name: 'Hard', mult: '3.5x Dano/HP', color: 'border-blue-500 bg-blue-950/60 text-blue-300' },
-    { id: 'nightmare', name: 'Nightmare', mult: '12.0x Dano/HP', color: 'border-purple-500 bg-purple-950/60 text-purple-300' },
-    { id: 'hell', name: 'Hell (Transcendente)', mult: '50.0x Dano/HP', color: 'border-red-500 bg-red-950/80 text-red-400 font-bold' },
+
+  const difficultiesList: { id: Difficulty; name: string; mult: string; badge: string; color: string }[] = [
+    { id: 'normal', name: 'Normal', mult: '1.0x Stats Inimigos', badge: 'Iniciante', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
+    { id: 'hard', name: 'Hard', mult: '3.5x Stats Inimigos', badge: 'Intermediário', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
+    { id: 'nightmare', name: 'Nightmare', mult: '12.0x Stats Inimigos', badge: 'Veterano', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
+    { id: 'hell', name: 'Hell (Transcendente)', mult: '50.0x Stats Inimigos', badge: 'Lendário', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
   ];
 
   return (
-    <div className="bg-slate-900/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-6 shadow-2xl backdrop-blur-md">
-      {/* Header do Mapa */}
-      <div className="flex justify-between items-center bg-black/50 p-4 rounded-xl border border-amber-500/30">
-        <div>
-          <h3 className="text-lg font-extrabold text-amber-400 flex items-center gap-2">
-            <MapPin size={20} /> Mapa do Mundo Espiritual (World Map)
+    <div className="bg-slate-950/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-6 shadow-2xl backdrop-blur-md">
+      {/* Dynamic Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-5 rounded-xl border border-amber-500/30 shadow-lg relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none text-9xl">
+          🗺️
+        </div>
+
+        <div className="z-10">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-widest">
+              Exploração Espiritual
+            </span>
+            <span className="text-xs text-slate-400 font-mono">
+              Fase Ativa: <strong className="text-amber-400 font-extrabold">{biomeStage} / 10</strong>
+            </span>
+          </div>
+
+          <h3 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-white flex items-center gap-2 mt-1">
+            <MapPin className="text-amber-400" size={22} /> Mapa de Mundos Espirituais
           </h3>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Avance pelas 10 fases de cada bioma. Derrote o Boss no Estágio 10 para desbloquear o próximo mundo!
+          <p className="text-xs text-slate-400 mt-1 max-w-xl">
+            Escolha seu campo de batalha, enfrente a horda inimiga e elimine o Boss no Estágio 10 para conquistar a vitória e avançar!
           </p>
         </div>
-        <div className="text-right font-mono text-xs text-gray-300 bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-500/40">
-          Dificuldade Ativa: <span className="text-amber-400 font-bold uppercase">{difficulty}</span>
+
+        <div className="z-10 text-right bg-slate-950/80 px-4 py-2.5 rounded-xl border border-amber-500/30 flex flex-col items-end">
+          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">Dificuldade Ativa</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Flame size={14} className="text-amber-400 animate-pulse" />
+            <span className="text-sm font-extrabold text-amber-400 uppercase tracking-wide">{difficulty}</span>
+          </div>
+          <span className="text-[10px] text-amber-300/80 font-mono mt-0.5">
+            {difficultiesList.find((d) => d.id === difficulty)?.mult}
+          </span>
         </div>
       </div>
 
-      {/* Seleção de Dificuldade com Trava de Progresso */}
+      {/* Difficulties Selector */}
       <div>
-        <h4 className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <Trophy size={14} className="text-amber-400" /> Dificuldades Globais (Derrote o Aizen para Liberar a Próxima)
-        </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs text-slate-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <Trophy size={15} className="text-amber-400" /> Dificuldades Globais
+          </h4>
+          <span className="text-[10px] text-slate-400 font-mono">
+            Derrote o Boss Supremo para desbloquear o próximo nível
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {difficultiesList.map((diff) => {
             const isUnlocked = unlockedDifficulties.includes(diff.id);
             const isSelected = difficulty === diff.id;
@@ -53,30 +81,47 @@ export const WorldMapPanel: React.FC = () => {
                 key={diff.id}
                 onClick={() => isUnlocked && changeDifficulty(diff.id)}
                 disabled={!isUnlocked}
-                className={`p-3 rounded-xl border text-xs font-semibold text-center transition flex flex-col items-center justify-center gap-1 relative ${
+                className={`p-3.5 rounded-xl border text-xs font-semibold text-left transition relative flex flex-col justify-between gap-2 overflow-hidden ${
                   isSelected
-                    ? 'ring-2 ring-amber-400 shadow-xl border-amber-400 bg-amber-950/60'
+                    ? 'ring-2 ring-amber-400/90 shadow-xl border-amber-400 bg-gradient-to-b from-amber-950/80 to-slate-950'
                     : isUnlocked
-                    ? `${diff.color} hover:scale-[1.02] cursor-pointer`
-                    : 'bg-black/40 border-gray-800 text-gray-600 opacity-50 cursor-not-allowed'
+                    ? `${diff.color} hover:scale-[1.02] cursor-pointer hover:border-amber-400/50`
+                    : 'bg-slate-950/40 border-slate-800 text-slate-600 opacity-50 cursor-not-allowed'
                 }`}
               >
-                {!isUnlocked && <Lock size={14} className="text-gray-500 absolute top-2 right-2" />}
-                <div className="font-extrabold">{diff.name}</div>
-                <div className="text-[10px] opacity-80">{diff.mult}</div>
+                {!isUnlocked && (
+                  <div className="absolute top-2 right-2 bg-slate-900/90 p-1 rounded border border-slate-800">
+                    <Lock size={13} className="text-slate-500" />
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm text-slate-100">{diff.name}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                      {diff.badge}
+                    </span>
+                  </div>
+                  <p className="text-[10px] opacity-75 mt-0.5 font-mono">{diff.mult}</p>
+                </div>
+
+                {isSelected && (
+                  <div className="flex items-center gap-1 text-[10px] text-amber-400 font-bold uppercase mt-1">
+                    <Sparkles size={12} /> Ativo Agora
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Linha do Tempo / Trilho dos Biomas */}
+      {/* Biomes List */}
       <div>
-        <h4 className="text-xs text-cyan-400 font-bold uppercase tracking-wider mb-3">
-          Trilha de Progresso dos Biomas (10 Fases por Mundo)
+        <h4 className="text-xs text-cyan-400 font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Swords size={15} /> Biomas Espirituais ({BIOMES_CATALOG.length} Regiões)
         </h4>
 
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {BIOMES_CATALOG.map((biome) => {
             const isUnlocked = unlockedBiomes.includes(biome.id);
             const isCurrent = currentBiomeId === biome.id;
@@ -85,47 +130,96 @@ export const WorldMapPanel: React.FC = () => {
               <div
                 key={biome.id}
                 onClick={() => isUnlocked && changeBiome(biome.id)}
-                className={`p-4 rounded-2xl border transition relative overflow-hidden flex flex-col sm:flex-row justify-between items-center gap-4 bg-gradient-to-r ${biome.bgGradient} ${
+                className={`p-5 rounded-2xl border transition relative overflow-hidden flex flex-col lg:flex-row justify-between gap-5 bg-gradient-to-r ${biome.bgGradient} ${
                   isCurrent
-                    ? 'border-amber-400 ring-2 ring-amber-400/80 shadow-2xl'
+                    ? 'border-amber-400 ring-2 ring-amber-400/70 shadow-2xl'
                     : isUnlocked
-                    ? 'border-white/10 hover:border-white/30 cursor-pointer opacity-90'
-                    : 'border-slate-800 opacity-40 grayscale cursor-not-allowed'
+                    ? 'border-slate-800 hover:border-slate-600 cursor-pointer opacity-90 hover:opacity-100'
+                    : 'border-slate-900 opacity-40 grayscale cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-center gap-4 z-10">
-                  {/* Ícone de Estado */}
-                  <div className={`p-3 rounded-xl border ${isCurrent ? 'bg-amber-500 text-black border-amber-300' : isUnlocked ? 'bg-slate-900 text-cyan-400 border-cyan-500/40' : 'bg-black text-gray-600 border-gray-800'}`}>
-                    {isCurrent ? <CheckCircle2 size={24} /> : isUnlocked ? <MapPin size={24} /> : <Lock size={24} />}
+                {/* Visual Glass Overlay */}
+                <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
+
+                {/* Left Info Section */}
+                <div className="flex items-start gap-4 z-10 flex-1">
+                  <div
+                    className={`p-3.5 rounded-xl border flex items-center justify-center shrink-0 text-2xl shadow-inner ${
+                      isCurrent
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-400/60'
+                        : isUnlocked
+                        ? 'bg-slate-900/80 text-cyan-400 border-slate-700'
+                        : 'bg-slate-950 text-slate-700 border-slate-800'
+                    }`}
+                  >
+                    {isCurrent ? <CheckCircle2 size={28} className="text-amber-400" /> : isUnlocked ? <MapPin size={28} /> : <Lock size={28} />}
                   </div>
 
-                  <div>
-                    <span className="text-[10px] text-amber-300 font-mono font-bold uppercase tracking-widest block">{biome.japaneseName}</span>
-                    <h4 className="text-base font-extrabold text-white">{biome.name}</h4>
-                    <p className="text-xs text-gray-300 max-w-sm mt-0.5">{biome.description}</p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-amber-300 font-mono font-bold uppercase tracking-widest bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/20">
+                        {biome.japaneseName}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-amber-400 text-slate-950 rounded-full uppercase shadow">
+                          Mundo Ativo
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-lg font-extrabold text-white tracking-wide">{biome.name}</h4>
+                    <p className="text-xs text-slate-300 max-w-xl leading-relaxed">{biome.description}</p>
+
+                    {/* Mobs Preview list */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-mono uppercase font-bold flex items-center gap-1">
+                        <Swords size={11} /> Mobs:
+                      </span>
+                      {biome.enemies.map((enemy, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[11px] bg-slate-900/80 border border-slate-800 text-slate-300 px-2 py-0.5 rounded flex items-center gap-1"
+                        >
+                          <span>{enemy.avatarIcon}</span>
+                          <span>{enemy.name}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Status da Fases / Botão de Acesso */}
-                <div className="z-10 flex flex-col items-end gap-2 w-full sm:w-auto">
-                  {isUnlocked ? (
-                    <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-lg border border-white/10 text-xs w-full sm:w-auto justify-between sm:justify-end">
-                      <span className="text-gray-400">Progresso de Fases:</span>
-                      <span className="text-amber-400 font-bold font-mono">
-                        {isCurrent ? `${biomeStage} / 10` : '10 / 10 (Concluído)'}
-                      </span>
+                {/* Right Boss & Stage Preview */}
+                <div className="z-10 flex flex-col justify-between items-start lg:items-end gap-3 min-w-[220px]">
+                  {/* Boss Box */}
+                  <div className="bg-slate-950/80 border border-red-500/30 p-3 rounded-xl w-full flex items-center gap-3">
+                    <div className="text-2xl bg-red-950/60 p-2 rounded-lg border border-red-500/40 text-center shrink-0">
+                      {biome.boss.avatarIcon}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-red-400 font-semibold bg-red-950/60 px-3 py-1 rounded border border-red-800/50">
-                      <ShieldAlert size={14} /> Bioma Bloqueado
+                    <div>
+                      <div className="text-[9px] text-red-400 font-mono uppercase tracking-wider font-bold flex items-center gap-1">
+                        <Skull size={10} /> Boss Final (Estágio 10)
+                      </div>
+                      <div className="text-xs font-extrabold text-white">{biome.boss.name}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        HP: {biome.boss.hpBase.toLocaleString()} | ATK: {biome.boss.atkBase}
+                      </div>
                     </div>
-                  )}
+                  </div>
 
-                  {isCurrent && (
-                    <span className="text-[11px] font-extrabold px-3 py-0.5 bg-amber-400 text-slate-950 rounded-full uppercase shadow">
-                      Mundo Ativo
-                    </span>
-                  )}
+                  {/* Stage Progress */}
+                  <div className="w-full flex items-center justify-between lg:justify-end gap-3 text-xs bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    {isUnlocked ? (
+                      <>
+                        <span className="text-slate-400 font-mono">Progresso:</span>
+                        <span className="text-amber-400 font-bold font-mono text-sm">
+                          {isCurrent ? `Estágio ${biomeStage} / 10` : '10 / 10 (Concluído)'}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-xs text-red-400 font-semibold w-full justify-center">
+                        <ShieldAlert size={14} /> Bioma Bloqueado
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -135,3 +229,4 @@ export const WorldMapPanel: React.FC = () => {
     </div>
   );
 };
+

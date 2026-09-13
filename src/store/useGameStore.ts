@@ -11,6 +11,7 @@ interface GameState {
   difficulty: Difficulty;
   biomeStage: number; // 1 to 10 (10 is Boss)
   isFightingBoss: boolean;
+  autoAdvance: boolean; // Controls whether to advance to next stage or hold/farm
   unlockedBiomes: string[];
   unlockedDifficulties: Difficulty[];
   
@@ -56,6 +57,7 @@ interface GameState {
   changeBiome: (biomeId: string) => void;
   changeDifficulty: (diff: Difficulty) => void;
   challengeBoss: () => void;
+  toggleAutoAdvance: () => void;
   resetProgressSave: () => void;
 }
 
@@ -175,6 +177,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   difficulty: 'normal',
   biomeStage: 1,
   isFightingBoss: false,
+  autoAdvance: true, // Por padrão avança automaticamente
   unlockedBiomes: ['karakura'],
   unlockedDifficulties: ['normal'],
 
@@ -427,10 +430,11 @@ export const useGameStore = create<GameState>((set, get) => ({
           }
         }
       } else {
-        // Avanço normal de fase (1 -> 2 -> ... -> 9 -> 10)
-        nextStage = state.biomeStage + 1;
-        if (nextStage === 10) {
-          nextIsBoss = true;
+        // Avanço normal de fase (se autoAdvance for true)
+        if (state.autoAdvance) {
+          nextStage = Math.min(9, state.biomeStage + 1); // Não entra no boss automaticamente a menos que desafie ou autoAdvance atinja a fase 9
+        } else {
+          nextStage = state.biomeStage; // Fica parado no mesmo estágio para farm
         }
       }
 
@@ -671,12 +675,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   challengeBoss: () => {
-    const { currentBiomeId, difficulty } = get();
+    const { currentBiomeId, difficulty, biomeStage } = get();
+    // O desafio do boss só está disponível se o jogador já estiver no Estágio 9 ou superior
+    if (biomeStage < 9) return;
+
     set({
       biomeStage: 10,
       isFightingBoss: true,
       currentEnemy: spawnEnemyForBiome(currentBiomeId, difficulty, 10, true),
     });
+  },
+
+  toggleAutoAdvance: () => {
+    const { autoAdvance } = get();
+    set({ autoAdvance: !autoAdvance });
   },
 
   resetProgressSave: () => {

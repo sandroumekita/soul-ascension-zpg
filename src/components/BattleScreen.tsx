@@ -13,8 +13,10 @@ export const BattleScreen: React.FC = () => {
     difficulty,
     biomeStage,
     isFightingBoss,
+    autoAdvance,
     logs,
     challengeBoss,
+    toggleAutoAdvance,
     skill1Cooldown,
     skill2Cooldown,
     equippedSlot1SkillId,
@@ -32,6 +34,8 @@ export const BattleScreen: React.FC = () => {
   const totalAtk = stats.baseAtk + weaponAtk;
   const calculatedDps = Math.round(totalAtk * stats.baseSpd);
 
+  const canChallengeBoss = biomeStage >= 9;
+
   return (
     <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-5 rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden backdrop-blur-md`}>
       {/* Header do Bioma e Dificuldade */}
@@ -45,16 +49,39 @@ export const BattleScreen: React.FC = () => {
             </span>
           </h2>
         </div>
-        <div className="flex sm:flex-col justify-between items-center sm:items-end">
-          <div className="text-sm font-semibold text-gray-300">
-            Estágio: <span className="text-amber-400 font-bold text-base">{biomeStage} / 10</span>
+
+        {/* Controles de Modo de Jogo (Auto-Avançar & Trava do Boss) */}
+        <div className="flex flex-col sm:items-end gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleAutoAdvance}
+              className={`text-xs px-3 py-1 rounded-lg font-bold border transition flex items-center gap-1 cursor-pointer ${
+                autoAdvance
+                  ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
+                  : 'bg-amber-950/80 border-amber-500 text-amber-300'
+              }`}
+              title="Alternar entre avançar fases ou farmar fixo no mesmo estágio"
+            >
+              {autoAdvance ? '🔄 Auto-Avanço ON' : '🛑 Farm Fixo (Parado)'}
+            </button>
+
+            <div className="text-sm font-semibold text-gray-300">
+              Estágio: <span className="text-amber-400 font-bold text-base">{biomeStage} / 10</span>
+            </div>
           </div>
+
           {!isFightingBoss && (
             <button
               onClick={challengeBoss}
-              className="mt-1 text-xs px-4 py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1.5 animate-pulse cursor-pointer"
+              disabled={!canChallengeBoss}
+              className={`text-xs px-4 py-1.5 font-bold rounded-lg shadow-lg transition flex items-center gap-1.5 ${
+                canChallengeBoss
+                  ? 'bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white animate-pulse cursor-pointer hover:scale-105 active:scale-95'
+                  : 'bg-gray-900 border border-gray-700 text-gray-500 cursor-not-allowed opacity-60'
+              }`}
+              title={canChallengeBoss ? 'Desafiar Boss da Fase 10!' : 'Chegue ao Estágio 9 para liberar o Boss!'}
             >
-              <Skull size={15} /> Desafiar Boss!
+              <Skull size={15} /> {canChallengeBoss ? 'Desafiar Boss!' : 'Boss (Requer Estágio 9)'}
             </button>
           )}
           {isFightingBoss && (

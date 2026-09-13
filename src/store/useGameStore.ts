@@ -151,6 +151,8 @@ const spawnEnemyForBiome = (biomeId: string, diff: Difficulty, stage: number, is
       expReward: Math.round(b.expBase * diffMultiplier * 2.5),
       goldReward: Math.round(b.goldBase * diffMultiplier * 2.5),
       isBoss: true,
+      attackSpeedSec: b.attackSpeedSec || 1.5,
+      avatarIcon: b.avatarIcon || '💀',
     };
   }
 
@@ -166,6 +168,8 @@ const spawnEnemyForBiome = (biomeId: string, diff: Difficulty, stage: number, is
     expReward: Math.round(enemyTemplate.expBase * diffMultiplier),
     goldReward: Math.round(enemyTemplate.goldBase * diffMultiplier),
     isBoss: false,
+    attackSpeedSec: enemyTemplate.attackSpeedSec || 1.2,
+    avatarIcon: enemyTemplate.avatarIcon || '👻',
   };
 };
 

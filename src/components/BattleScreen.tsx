@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
-import { Shield, Zap, Sparkles, Skull, Crown, Activity, Flame } from 'lucide-react';
+import { Shield, Zap, Sparkles, Skull, Crown, Activity, Flame, Swords } from 'lucide-react';
+import type { FloatingDamage } from '../types/game';
 
 export const BattleScreen: React.FC = () => {
   const {
@@ -23,6 +24,30 @@ export const BattleScreen: React.FC = () => {
     equippedSlot2SkillId,
     equippedWeapon,
   } = useGameStore();
+
+  const [floatingDamages, setFloatingDamages] = useState<FloatingDamage[]>([]);
+
+  // Monitora alterações na vida do inimigo para gerar números de dano flutuantes e feedback de morte
+  useEffect(() => {
+    if (!currentEnemy) return;
+    
+    // Dispara animação de número flutuante de dano quando o mob recebe um golpe
+    const newDmg: FloatingDamage = {
+      id: `dmg_${Date.now()}_${Math.random()}`,
+      damage: Math.round(stats.baseAtk * (equippedWeapon ? 1 + equippedWeapon.atk / 50 : 1)),
+      isCrit: Math.random() < 0.25,
+      isSkill: false,
+      xOffset: (Math.random() - 0.5) * 60,
+    };
+
+    setFloatingDamages((prev) => [...prev.slice(-4), newDmg]);
+
+    const timer = setTimeout(() => {
+      setFloatingDamages((prev) => prev.filter((d) => d.id !== newDmg.id));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [currentEnemy?.currentHp]);
 
   const currentBiome = BIOMES_CATALOG.find((b) => b.id === currentBiomeId) || BIOMES_CATALOG[0];
 
@@ -55,18 +80,18 @@ export const BattleScreen: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={toggleAutoAdvance}
-              className={`text-xs px-3 py-1 rounded-lg font-bold border transition flex items-center gap-1 cursor-pointer ${
+              className={`text-xs px-3 py-1 rounded-lg font-bold border transition flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 ${
                 autoAdvance
                   ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
                   : 'bg-amber-950/80 border-amber-500 text-amber-300'
               }`}
-              title="Alternar entre avançar fases ou farmar fixo no mesmo estágio"
+              title="Alternar entre avançar horda ou farmar no mesmo estágio"
             >
-              {autoAdvance ? '🔄 Auto-Avanço ON' : '🛑 Farm Fixo (Parado)'}
+              {autoAdvance ? '🔄 Horda Contínua ON' : '🛑 Farm Fixo (Parado)'}
             </button>
 
             <div className="text-sm font-semibold text-gray-300">
-              Estágio: <span className="text-amber-400 font-bold text-base">{biomeStage} / 10</span>
+              Fase: <span className="text-amber-400 font-bold text-base">{biomeStage} / 10</span>
             </div>
           </div>
 
@@ -87,30 +112,66 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
+      {/* Visual da Horda de Inimigos (Múltiplos Mobs na Trilha de Batalha) */}
+      <div className="my-4 bg-black/40 p-3 rounded-xl border border-white/5 flex justify-between items-center px-6">
+        <div className="flex items-center gap-2 text-xs font-bold text-red-400">
+          <Swords size={16} /> Avanço da Horda Hollow:
+        </div>
+        <div className="flex gap-2 items-center">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((stageNum) => (
+            <div
+              key={stageNum}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition ${
+                stageNum < biomeStage
+                  ? 'bg-emerald-950 border-emerald-500 text-emerald-400'
+                  : stageNum === biomeStage
+                  ? 'bg-red-600 border-white text-white scale-110 shadow-lg shadow-red-500/50 animate-pulse'
+                  : 'bg-slate-900 border-gray-800 text-gray-600'
+              }`}
+            >
+              {stageNum === 10 ? '👑' : stageNum}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Arena de Batalha (Inimigo vs Shinigami) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
-        {/* Visual do Inimigo / Hollow */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+        {/* Visual do Inimigo / Hollow Ativo da Horda */}
         <div className="bg-slate-950/80 p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden hover:border-red-500 transition duration-300">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
           
+          {/* Números Flutuantes de Dano Animados */}
+          {floatingDamages.map((dmg) => (
+            <div
+              key={dmg.id}
+              className={`absolute top-12 font-extrabold text-sm pointer-events-none animate-float-damage ${
+                dmg.isCrit ? 'text-amber-400 text-lg shadow-red-500' : 'text-red-400'
+              }`}
+              style={{ left: `calc(50% + ${dmg.xOffset}px)` }}
+            >
+              -{dmg.damage} {dmg.isCrit ? '🔥 CRÍTICO!' : ''}
+            </div>
+          ))}
+
           <div className="w-full flex justify-between items-center mb-3">
             <span className={`font-extrabold ${currentEnemy?.isBoss ? 'text-amber-400 text-lg' : 'text-red-400 text-base'}`}>
               {currentEnemy?.name}
             </span>
-            <span className="text-xs font-mono text-gray-300 bg-red-950/60 px-2 py-0.5 rounded border border-red-800">
+            <span className="text-xs font-mono text-gray-300 bg-red-950/60 px-2.5 py-0.5 rounded border border-red-800 font-bold">
               {currentEnemy?.currentHp} / {currentEnemy?.maxHp} HP
             </span>
           </div>
 
-          {/* Avatar / Icon do Inimigo com Efeito Flutuante */}
-          <div className="my-4 p-5 bg-gradient-to-b from-red-950/40 to-black rounded-full border border-red-500/30 text-red-500 shadow-2xl animate-bounce relative">
-            <Skull size={48} />
+          {/* Avatar Icon do Mob Ativo da Horda */}
+          <div className="my-4 p-6 bg-gradient-to-b from-red-950/50 to-black rounded-full border border-red-500/40 shadow-2xl text-4xl animate-bounce relative">
+            {currentEnemy?.avatarIcon || '💀'}
           </div>
 
-          {/* Barra de Vida Inimigo */}
+          {/* Barra de Vida Inimigo com animação responsiva */}
           <div className="w-full bg-slate-900 h-5 rounded-full overflow-hidden border border-red-900/60 p-0.5 mb-3 shadow-inner">
             <div
-              className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-150"
               style={{ width: `${enemyHpPct}%` }}
             />
           </div>
@@ -129,12 +190,12 @@ export const BattleScreen: React.FC = () => {
             <span className="font-extrabold text-cyan-300 text-base flex items-center gap-1.5">
               <Sparkles size={18} className="text-cyan-400" /> Shinigami Substituto
             </span>
-            <span className="text-xs font-mono text-cyan-200 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800">
+            <span className="text-xs font-mono text-cyan-200 bg-cyan-950/60 px-2.5 py-0.5 rounded border border-cyan-800 font-bold">
               {playerCurrentHp} / {playerMaxHp} HP
             </span>
           </div>
 
-          {/* Avatar / Icon do Shinigami */}
+          {/* Avatar do Shinigami */}
           <div className="my-4 p-5 bg-gradient-to-b from-cyan-950/40 to-black rounded-full border border-cyan-500/30 text-cyan-400 shadow-2xl animate-pulse">
             <Activity size={48} />
           </div>
@@ -142,7 +203,7 @@ export const BattleScreen: React.FC = () => {
           {/* Barra de Vida Player */}
           <div className="w-full bg-slate-900 h-5 rounded-full overflow-hidden border border-cyan-900/60 p-0.5 mb-3 shadow-inner">
             <div
-              className="bg-gradient-to-r from-cyan-600 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-cyan-600 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-200"
               style={{ width: `${playerHpPct}%` }}
             />
           </div>

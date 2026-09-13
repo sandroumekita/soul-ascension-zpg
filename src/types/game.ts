@@ -62,7 +62,8 @@ export interface Enemy {
   expReward: number;
   goldReward: number;
   isBoss: boolean;
-  avatarUrl?: string;
+  attackSpeedSec: number;
+  avatarIcon: string;
 }
 
 export interface Biome {
@@ -78,6 +79,8 @@ export interface Biome {
     defBase: number;
     expBase: number;
     goldBase: number;
+    attackSpeedSec: number;
+    avatarIcon: string;
   }[];
   boss: {
     name: string;
@@ -86,6 +89,8 @@ export interface Biome {
     defBase: number;
     expBase: number;
     goldBase: number;
+    attackSpeedSec: number;
+    avatarIcon: string;
   };
 }
 
@@ -108,4 +113,12 @@ export interface BattleLogMessage {
   text: string;
   type: 'player_attack' | 'enemy_attack' | 'skill' | 'loot' | 'system' | 'victory';
   timestamp: string;
+}
+
+export interface FloatingDamage {
+  id: string;
+  damage: number;
+  isCrit: boolean;
+  isSkill: boolean;
+  xOffset: number;
 }

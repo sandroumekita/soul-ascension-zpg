@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
 import { GAME_THEME } from '../config/themeConfig';
-import { Shield, Zap, Sparkles, Skull, Crown, Activity, Flame, Swords } from 'lucide-react';
+import { HeroAvatarPixel } from './HeroAvatarPixel';
+import { Shield, Zap, Sparkles, Skull, Crown, Flame, Swords } from 'lucide-react';
 import type { FloatingDamage } from '../types/game';
 
 export const BattleScreen: React.FC = () => {
@@ -220,9 +221,12 @@ export const BattleScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Avatar do Player */}
-          <div className="my-4 p-5 bg-gradient-to-b from-cyan-950/40 to-black rounded-full border border-cyan-500/30 text-cyan-400 shadow-2xl animate-pulse">
-            <Activity size={48} />
+          {/* Avatar do Player em Pixel Art Animado */}
+          <div className="my-2 flex flex-col items-center">
+            <HeroAvatarPixel size="md" isAttacking={isHitAnimating} />
+            <span className="text-[10px] text-amber-300 font-mono mt-2 bg-black/60 px-2 py-0.5 rounded border border-amber-500/30">
+              Shinigami Substituto (Pixel Art)
+            </span>
           </div>
 
           {/* Barra de Vida Player */}

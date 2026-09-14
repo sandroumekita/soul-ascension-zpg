@@ -268,6 +268,9 @@ const executeSkill = (
   for (let i = 0; i < targetsCount; i++) {
     if (aliveTargets[i]) {
       aliveTargets[i].currentHp = Math.max(0, aliveTargets[i].currentHp - skillDamage);
+      if (aliveTargets[i].currentHp <= 0 && aliveTargets[i].deathTimerSec === undefined) {
+        aliveTargets[i].deathTimerSec = 0.5;
+      }
     }
   }
 
@@ -380,76 +383,81 @@ export const useGameStore = create<GameState>((set, get) => ({
     const enemies = state.currentEnemies.map((e) => ({ ...e }));
     const logsToAdd: BattleLogMessage[] = [];
 
-    // Filter to alive enemies first
+    // Filter to alive enemies for targeting
     const aliveEnemiesBefore = enemies.filter(e => e.currentHp > 0);
-    if (aliveEnemiesBefore.length === 0) return;
+    const primaryEnemy = aliveEnemiesBefore.length > 0 ? aliveEnemiesBefore[0] : null;
 
-    const primaryEnemy = aliveEnemiesBefore[0];
-
-    // --- PLAYER AUTO-ATTACK (Per-Attack Crit, not Per-Frame) ---
-    // SPD hard cap: max MAX_HITS_PER_SEC hits/sec
-    const effectiveSpd = Math.min(calc.spd, MAX_HITS_PER_SEC);
-    const hitsThisTick = deltaTimeSec * effectiveSpd;
-    let hitAccum = state._hitAccumulator + hitsThisTick;
+    let hitAccum = state._hitAccumulator;
     let healAccum = state._healAccumulator;
 
-    // Process complete hits (rolls per full attack, respecting attack speed)
-    let totalAutoAttackDmg = 0;
-    while (hitAccum >= 1.0) {
-      hitAccum -= 1.0;
-      // Multiplicative damage formula: ATK * (100 / (100 + DEF))
-      const rawDamage = Math.max(1, Math.round(calc.atk * (100 / (100 + primaryEnemy.def))));
-      const isCrit = Math.random() < calc.critChance;
-      const hitDamage = isCrit ? Math.round(rawDamage * 1.8) : rawDamage;
-      totalAutoAttackDmg += hitDamage;
-    }
+    // --- PLAYER AUTO-ATTACK (only if there is an alive target) ---
+    if (primaryEnemy) {
+      const effectiveSpd = Math.min(calc.spd, MAX_HITS_PER_SEC);
+      const hitsThisTick = deltaTimeSec * effectiveSpd;
+      hitAccum += hitsThisTick;
 
-    if (totalAutoAttackDmg > 0) {
-      primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - totalAutoAttackDmg);
-    }
+      let totalAutoAttackDmg = 0;
+      while (hitAccum >= 1.0) {
+        hitAccum -= 1.0;
+        // Multiplicative damage formula: ATK * (100 / (100 + DEF))
+        const rawDamage = Math.max(1, Math.round(calc.atk * (100 / (100 + primaryEnemy.def))));
+        const isCrit = Math.random() < calc.critChance;
+        const hitDamage = isCrit ? Math.round(rawDamage * 1.8) : rawDamage;
+        totalAutoAttackDmg += hitDamage;
+      }
 
-    // Apply Lifesteal with float accumulator (50% vs mobs, 100% vs boss)
-    if (newBuff && newBuff.lifestealPct > 0 && totalAutoAttackDmg > 0) {
-      const lifestealMult = primaryEnemy.isBoss ? 1.0 : 0.5;
-      healAccum += totalAutoAttackDmg * newBuff.lifestealPct * lifestealMult;
-      if (healAccum >= 1.0) {
-        const healApply = Math.floor(healAccum);
-        healAccum -= healApply;
-        newPlayerHp = Math.min(calc.hp, newPlayerHp + healApply);
+      if (totalAutoAttackDmg > 0) {
+        primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - totalAutoAttackDmg);
+        if (primaryEnemy.currentHp <= 0 && primaryEnemy.deathTimerSec === undefined) {
+          primaryEnemy.deathTimerSec = 0.5; // Start 0.5s death timer
+        }
+      }
+
+      // Apply Lifesteal with float accumulator (50% vs mobs, 100% vs boss)
+      if (newBuff && newBuff.lifestealPct > 0 && totalAutoAttackDmg > 0) {
+        const lifestealMult = primaryEnemy.isBoss ? 1.0 : 0.5;
+        healAccum += totalAutoAttackDmg * newBuff.lifestealPct * lifestealMult;
+        if (healAccum >= 1.0) {
+          const healApply = Math.floor(healAccum);
+          healAccum -= healApply;
+          newPlayerHp = Math.min(calc.hp, newPlayerHp + healApply);
+        }
       }
     }
 
-    // --- SKILL EXECUTION (targets alive enemies only, dead filtered first) ---
-    // Skill 1
-    if (newSkill1Cd <= 0 && state._cachedSkill1) {
-      const skill = state._cachedSkill1;
-      const result = executeSkill(skill, calc, enemies, 'Habilidade');
-      newSkill1Cd = skill.cooldownSec;
-      logsToAdd.push(result.log);
-      if (result.healAmount > 0) {
-        newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
-      }
-    }
-
-    // Skill 2 (Bankai)
-    if (newSkill2Cd <= 0 && state._cachedSkill2) {
-      const bankai = state._cachedSkill2;
-      const result = executeSkill(bankai, calc, enemies, 'BANKAI');
-      newSkill2Cd = bankai.cooldownSec;
-      logsToAdd.push(result.log);
-      if (result.healAmount > 0) {
-        newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
+    // --- SKILL EXECUTION (only if there are alive targets) ---
+    if (aliveEnemiesBefore.length > 0) {
+      // Skill 1
+      if (newSkill1Cd <= 0 && state._cachedSkill1) {
+        const skill = state._cachedSkill1;
+        const result = executeSkill(skill, calc, enemies, 'Habilidade');
+        newSkill1Cd = skill.cooldownSec;
+        logsToAdd.push(result.log);
+        if (result.healAmount > 0) {
+          newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
+        }
       }
 
-      if (bankai.durationSec) {
-        newBuff = {
-          atkBuffPct: bankai.atkBuffPct || 0,
-          spdBuffPct: bankai.spdBuffPct || 0,
-          defBuffPct: bankai.defBuffPct || 0,
-          lifestealPct: bankai.lifestealPct || 0,
-          durationLeft: bankai.durationSec,
-          name: bankai.name,
-        };
+      // Skill 2 (Bankai)
+      if (newSkill2Cd <= 0 && state._cachedSkill2) {
+        const bankai = state._cachedSkill2;
+        const result = executeSkill(bankai, calc, enemies, 'BANKAI');
+        newSkill2Cd = bankai.cooldownSec;
+        logsToAdd.push(result.log);
+        if (result.healAmount > 0) {
+          newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
+        }
+
+        if (bankai.durationSec) {
+          newBuff = {
+            atkBuffPct: bankai.atkBuffPct || 0,
+            spdBuffPct: bankai.spdBuffPct || 0,
+            defBuffPct: bankai.defBuffPct || 0,
+            lifestealPct: bankai.lifestealPct || 0,
+            durationLeft: bankai.durationSec,
+            name: bankai.name,
+          };
+        }
       }
     }
 
@@ -479,12 +487,25 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     });
 
-    // Filter surviving enemies
+    // Update death countdown timer (0.5s timeout) for any dying enemies
+    enemies.forEach((enemy) => {
+      if (enemy.currentHp <= 0) {
+        if (enemy.deathTimerSec === undefined) {
+          enemy.deathTimerSec = 0.5;
+        } else {
+          enemy.deathTimerSec = Math.max(0, enemy.deathTimerSec - deltaTimeSec);
+        }
+      }
+    });
+
+    // Alive enemies (still fighting)
     const aliveEnemies = enemies.filter((e) => e.currentHp > 0);
-    const defeatedEnemies = enemies.filter((e) => e.currentHp <= 0);
+    // Dying enemies (HP reached 0, waiting out the 0.5s death animation/clear delay)
+    const dyingEnemies = enemies.filter((e) => e.currentHp <= 0 && (e.deathTimerSec ?? 0) > 0);
 
     // --- HORDE ELIMINATED / RESPAWN / ADVANCE ---
-    if (aliveEnemies.length === 0) {
+    // Only advance when ALL enemies are dead AND all 0.5s death delays have finished!
+    if (aliveEnemies.length === 0 && dyingEnemies.length === 0) {
       let totalExpGained = 0;
       let totalGoldGained = 0;
       let wasBossDefeated = false;
@@ -492,20 +513,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Material drops from defeated enemies
       let matDrops = { mat1: 0, mat2: 0, mat3: 0 };
       const diffMult = DIFF_MULTIPLIERS[state.difficulty];
-      // Material scaling: sqrt of difficulty multiplier (prevents trivial gold but meaningful progression)
       const matDiffScale = Math.max(1, Math.round(Math.sqrt(diffMult)));
 
-      defeatedEnemies.forEach((e) => {
+      enemies.forEach((e) => {
         totalExpGained += e.expReward;
         totalGoldGained += e.goldReward;
         if (e.isBoss) {
           wasBossDefeated = true;
-          // Boss: guaranteed material drops
           matDrops.mat1 += MATERIAL_DROP_RATES.boss.mat1Qty * matDiffScale;
           matDrops.mat2 += MATERIAL_DROP_RATES.boss.mat2Qty * matDiffScale;
           matDrops.mat3 += MATERIAL_DROP_RATES.boss.mat3Qty * matDiffScale;
         } else {
-          // Normal enemy: chance-based drops
           if (Math.random() < MATERIAL_DROP_RATES.normal.mat1Chance) {
             matDrops.mat1 += MATERIAL_DROP_RATES.normal.mat1Qty * matDiffScale;
           }
@@ -690,10 +708,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    // --- NORMAL TICK UPDATE (only set if something changed) ---
+    // Keep alive enemies + dying enemies (so they remain visible at 0 HP for 0.5s)
+    const visibleEnemies = enemies.filter((e) => e.currentHp > 0 || (e.deathTimerSec ?? 0) > 0);
     const hasNewLogs = logsToAdd.length > 0;
     set({
-      currentEnemies: aliveEnemies,
+      currentEnemies: visibleEnemies,
       playerCurrentHp: newPlayerHp,
       playerMaxHp: calc.hp,
       skill1Cooldown: newSkill1Cd,

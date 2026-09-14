@@ -67,6 +67,7 @@ export interface Enemy {
   isBoss: boolean;
   attackSpeedSec: number;
   avatarIcon: string;
+  deathTimerSec?: number;
 }
 
 export interface Biome {

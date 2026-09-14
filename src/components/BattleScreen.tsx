@@ -101,7 +101,7 @@ export const BattleScreen: React.FC = () => {
   const [isHitAnimating, setIsHitAnimating] = useState<boolean>(false);
   const [showLogs, setShowLogs] = useState<boolean>(false);
 
-  const primaryEnemy = currentEnemies[0];
+  const primaryEnemy = currentEnemies.find((e) => e.currentHp > 0) || currentEnemies[0];
 
   // Monitor primary enemy HP for hit animation
   useEffect(() => {
@@ -280,37 +280,62 @@ export const BattleScreen: React.FC = () => {
                 );
               }
 
-              const enemyHpPct = Math.max(0, Math.min(100, (enemy.currentHp / enemy.maxHp) * 100));
+              const isDead = enemy.currentHp <= 0;
+              const enemyHpPct = isDead ? 0 : Math.max(0, Math.min(100, (enemy.currentHp / enemy.maxHp) * 100));
+              const isCurrentTarget = !isDead && enemy.id === primaryEnemy?.id;
+
               return (
                 <div
                   key={enemy.id}
-                  className={`h-[58px] p-2 rounded-xl border backdrop-blur-md transition-all duration-150 flex flex-col justify-between ${
-                    slotIndex === 0
+                  className={`h-[58px] p-2 rounded-xl border backdrop-blur-md transition-all duration-300 flex flex-col justify-between overflow-hidden relative ${
+                    isDead
+                      ? 'bg-gradient-to-r from-red-950/90 via-black to-red-950/90 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.7)] animate-pulse'
+                      : isCurrentTarget
                       ? 'bg-red-950/50 border-red-500/70 shadow-lg scale-[1.01]'
                       : 'bg-black/40 border-slate-800 opacity-75'
                   }`}
                 >
-                  <div className="flex justify-between items-center">
-                    <span className={`font-extrabold text-xs flex items-center gap-1.5 ${enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
-                      <PixelMobSprite icon={enemy.avatarIcon || '💀'} name={enemy.name} isBoss={enemy.isBoss} size="sm" />
-                      <span className="truncate max-w-[120px] sm:max-w-[150px]">{enemy.name}</span>
-                      {slotIndex === 0 && (
+                  <div className="flex justify-between items-center z-10">
+                    <span className={`font-extrabold text-xs flex items-center gap-1.5 ${isDead ? 'text-red-400' : enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
+                      <div className={isDead ? 'grayscale opacity-50 scale-90 transition-all duration-300' : ''}>
+                        <PixelMobSprite icon={enemy.avatarIcon || '💀'} name={enemy.name} isBoss={enemy.isBoss} size="sm" />
+                      </div>
+                      <span className={`truncate max-w-[120px] sm:max-w-[150px] ${isDead ? 'line-through opacity-75' : ''}`}>{enemy.name}</span>
+                      {isDead ? (
+                        <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded font-mono font-black shrink-0 animate-bounce shadow-md">
+                          💀 ELIMINADO
+                        </span>
+                      ) : isCurrentTarget ? (
                         <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded font-mono shrink-0">
                           ALVO
                         </span>
-                      )}
+                      ) : null}
                     </span>
-                    <span className="text-[10px] font-mono text-gray-300 bg-black/60 px-2 py-0.5 rounded border border-white/10 shrink-0">
-                      {enemy.currentHp} / {enemy.maxHp} HP
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 font-bold ${
+                      isDead
+                        ? 'text-red-400 bg-red-950 border-red-700 shadow-sm animate-pulse'
+                        : 'text-gray-300 bg-black/60 border-white/10'
+                    }`}>
+                      {isDead ? 0 : enemy.currentHp} / {enemy.maxHp} HP
                     </span>
                   </div>
 
-                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner">
+                  {/* Barra de Vida individual */}
+                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner z-10">
                     <div
-                      className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-150"
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        isDead
+                          ? 'w-0 bg-red-950'
+                          : 'bg-gradient-to-r from-red-700 via-red-500 to-amber-500'
+                      }`}
                       style={{ width: `${enemyHpPct}%` }}
                     />
                   </div>
+
+                  {/* Efeito visual de desintegração ao morrer */}
+                  {isDead && (
+                    <div className="absolute inset-0 bg-red-600/10 pointer-events-none animate-ping opacity-25" />
+                  )}
                 </div>
               );
             })}

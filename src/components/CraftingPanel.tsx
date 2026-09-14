@@ -86,7 +86,7 @@ export const CraftingPanel: React.FC = () => {
 
       {/* Lista de Receitas Desbloqueadas */}
       <div>
-        <div className="grid grid-cols-1 gap-2 sm:gap-3 max-h-72 sm:max-h-96 overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 gap-2 sm:gap-3">
           {filteredRecipes.map((recipe) => {
             const rarityStyle = RARITY_COLORS[recipe.resultRarity as keyof typeof RARITY_COLORS] || RARITY_COLORS.normal;
             const canCraft =

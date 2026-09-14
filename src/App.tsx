@@ -41,9 +41,9 @@ export const App: React.FC = () => {
   }, [tick]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-4xl mx-auto font-sans shadow-2xl border-x border-slate-800/80 w-full overflow-x-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col max-w-4xl mx-auto font-sans shadow-2xl border-x border-slate-800/80 w-full overflow-hidden">
       {/* Header Principal da Aplicação com Efeito Glassmorphism */}
-      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 py-2 px-3 sm:p-4 flex justify-between items-center shadow-lg sticky top-0 z-50 w-full">
+      <header className="shrink-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 py-2 px-3 sm:p-4 flex justify-between items-center shadow-lg z-50 w-full">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="p-1.5 sm:p-2.5 bg-gradient-to-tr from-red-600 to-amber-500 rounded-lg sm:rounded-xl shadow-lg text-white font-extrabold text-base sm:text-xl animate-pulse leading-none shrink-0">
             🗡️
@@ -65,8 +65,8 @@ export const App: React.FC = () => {
         </button>
       </header>
 
-      {/* Área de Conteúdo Ativo com Transições Fluidas */}
-      <main className="flex-1 p-2 sm:p-4 overflow-y-auto flex flex-col gap-2 sm:gap-4 w-full">
+      {/* Área de Conteúdo Ativo com Transições Fluidas e Scroll Bounded */}
+      <main className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 w-full">
         {activeTab === 'battle' && <BattleScreen />}
         {activeTab === 'stats' && <StatsPanel />}
         {activeTab === 'inventory' && <InventoryPanel />}
@@ -76,8 +76,8 @@ export const App: React.FC = () => {
         {activeTab === 'biomes' && <WorldMapPanel />}
       </main>
 
-      {/* Navegação por Abas Inferiores com Badges (Red Dots) */}
-      <nav className="bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 py-1.5 px-1 sm:p-2 sticky bottom-0 z-50 w-full">
+      {/* Navegação por Abas Inferiores Fixa no Rodapé */}
+      <nav className="shrink-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 py-1.5 px-1 sm:p-2 z-50 w-full">
         <div className="grid grid-cols-7 gap-0.5 sm:gap-1 max-w-2xl mx-auto w-full">
           <button
             onClick={() => setActiveTab('battle')}

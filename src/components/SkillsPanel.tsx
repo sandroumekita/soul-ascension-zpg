@@ -151,7 +151,7 @@ export const SkillsPanel: React.FC = () => {
       </div>
 
       {/* Lista Estilizada de Habilidades em Cards */}
-      <div className="grid grid-cols-1 gap-2 sm:gap-3 max-h-72 sm:max-h-96 overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 gap-2 sm:gap-3">
         {filteredSkills.map((skill) => {
           const owned = ownedSkills[skill.id];
           const level = owned ? owned.level : 1;

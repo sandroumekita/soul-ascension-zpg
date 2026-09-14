@@ -119,7 +119,7 @@ export const InventoryPanel: React.FC = () => {
           Nenhum item encontrado nesta categoria.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-2 sm:gap-3 max-h-72 sm:max-h-96 overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 gap-2 sm:gap-3">
           {filteredInventory.map((item) => {
             const rarityStyle = RARITY_COLORS[item.rarity];
             const equippedAtk = equippedWeapon ? equippedWeapon.atk : 0;

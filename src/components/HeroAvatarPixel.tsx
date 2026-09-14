@@ -44,13 +44,6 @@ const HeroAvatarPixelInner: React.FC<HeroAvatarPixelProps> = ({
           } ${isAttacking && !isDead ? 'scale-110 -rotate-3' : ''}`}
           style={{ imageRendering: 'pixelated' }}
         />
-
-        {/* Efeito de Corte de Energia de Espada (Reiatsu Slash) quando atacando */}
-        {isAttacking && !isDead && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent rotate-45 animate-ping opacity-90" />
-          </div>
-        )}
       </div>
     </div>
   );

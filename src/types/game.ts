@@ -109,6 +109,7 @@ export interface CharacterStats {
   baseSpd: number; // ataques por segundo (e.g. 1.0)
   gold: number; // Moeda padrão do jogo
   gems: number; // Moeda premium do jogo
+  bossKeys: number; // Chaves para desafiar o Boss da Fase 10
   prestigeRank: number; // Rank de Prestige
 }
 

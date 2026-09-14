@@ -80,6 +80,8 @@ export const BattleScreen: React.FC = () => {
     activeBuff,
     consecutiveDeaths,
     ownedSkills,
+    unlockedBiomes,
+    bossKeys,
   } = useGameStore(useShallow((state) => ({
     currentEnemies: state.currentEnemies,
     playerCurrentHp: state.playerCurrentHp,
@@ -103,6 +105,8 @@ export const BattleScreen: React.FC = () => {
     activeBuff: state.activeBuff,
     consecutiveDeaths: state.consecutiveDeaths,
     ownedSkills: state.ownedSkills,
+    unlockedBiomes: state.unlockedBiomes,
+    bossKeys: state.stats.bossKeys ?? 0,
   })));
 
   // Actions (stable references, won't trigger re-renders)
@@ -110,9 +114,11 @@ export const BattleScreen: React.FC = () => {
   const selectStage = useGameStore(state => state.selectStage);
   const toggleAutoAdvance = useGameStore(state => state.toggleAutoAdvance);
   const equipSkill = useGameStore(state => state.equipSkill);
+  const changeBiome = useGameStore(state => state.changeBiome);
 
   const [isHitAnimating, setIsHitAnimating] = useState<boolean>(false);
   const [showLogs, setShowLogs] = useState<boolean>(false);
+  const [logFilter, setLogFilter] = useState<'all' | 'loot' | 'skill' | 'system'>('all');
 
   const primaryEnemy = currentEnemies.find((e) => e.currentHp > 0) || currentEnemies[0];
 
@@ -157,23 +163,53 @@ export const BattleScreen: React.FC = () => {
 
   return (
     <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-2 sm:p-5 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden backdrop-blur-md w-full max-w-full`}>
-      {/* Header do Bioma e Dificuldade (Compacto no Mobile) */}
+      {/* Header do Bioma e Dificuldade (Select de Troca Rápida de Mapa) */}
       <div className="flex justify-between items-center bg-black/60 py-1.5 px-2 sm:p-4 rounded-xl border border-white/10 backdrop-blur-md gap-1.5 w-full min-w-0">
-        <div className="min-w-0 flex-1">
-          <span className="text-[8px] sm:text-[10px] text-amber-400 font-bold tracking-widest uppercase block leading-none truncate">{currentBiome.japaneseName}</span>
-          <h2 className="text-xs sm:text-lg font-extrabold flex items-center gap-1.5 leading-tight mt-0.5 min-w-0">
-            <span className="truncate max-w-[100px] xs:max-w-[160px] sm:max-w-none">{currentBiome.name}</span>
-            <span className="text-[8px] sm:text-xs px-1.5 py-0.2 rounded-full bg-red-950 border border-red-500 text-red-400 uppercase font-mono font-bold shrink-0">
-              {difficulty}
-            </span>
-          </h2>
+        <div className="min-w-0 flex-1 flex items-center gap-1.5">
+          <div className="relative min-w-0 max-w-[170px] xs:max-w-[210px] sm:max-w-[260px] flex-1">
+            <select
+              value={currentBiomeId}
+              onChange={(e) => changeBiome(e.target.value)}
+              className="bg-slate-950 text-amber-300 font-extrabold text-[11px] sm:text-sm rounded-lg px-2 py-1 pr-6 border border-amber-500/50 hover:border-amber-400 focus:outline-none cursor-pointer appearance-none truncate w-full shadow-inner"
+              title="Trocar Mapa / Bioma"
+            >
+              {BIOMES_CATALOG.map((b) => {
+                const isUnlocked = unlockedBiomes.includes(b.id);
+                return (
+                  <option
+                    key={b.id}
+                    value={b.id}
+                    disabled={!isUnlocked}
+                    className={isUnlocked ? 'bg-slate-950 text-amber-300 font-bold' : 'bg-slate-900 text-slate-500 italic'}
+                  >
+                    {isUnlocked ? `🗺️ ${b.name}` : `🔒 ${b.name} (Bloqueado)`}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-amber-400">
+              <ChevronDown size={12} />
+            </div>
+          </div>
+          <span className="text-[8px] sm:text-xs px-1.5 py-0.5 rounded bg-red-950 border border-red-500 text-red-400 uppercase font-mono font-bold shrink-0">
+            {difficulty}
+          </span>
         </div>
 
-        {/* Controles de Modo de Jogo */}
+        {/* Controles de Modo de Jogo e Boss */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* Contador de Chaves do Boss */}
+          <div
+            className="flex items-center gap-0.5 text-[9px] sm:text-xs px-1.5 py-1 rounded-lg bg-black/70 border border-amber-500/40 text-amber-300 font-mono font-bold shrink-0 shadow-sm"
+            title={`Chaves do Boss disponíveis: ${bossKeys} (Derrote Hollows para coletar mais)`}
+          >
+            <span>🗝️</span>
+            <span>{bossKeys}</span>
+          </div>
+
           <button
             onClick={toggleAutoAdvance}
-            className={`text-[9px] sm:text-xs px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold border transition flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 ${
+            className={`text-[9px] sm:text-xs px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg font-bold border transition flex items-center gap-0.5 cursor-pointer hover:scale-105 active:scale-95 shrink-0 ${
               autoAdvance
                 ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
                 : 'bg-amber-950/80 border-amber-500 text-amber-300'
@@ -186,15 +222,29 @@ export const BattleScreen: React.FC = () => {
           {!isFightingBoss && canChallengeBoss && (
             <button
               onClick={challengeBoss}
-              className="text-[9px] sm:text-xs px-1.5 sm:px-3.5 py-1 sm:py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition flex items-center gap-0.5 animate-pulse cursor-pointer hover:scale-105 active:scale-95 shrink-0"
-              title="Desafiar Boss da Fase 10!"
+              className={`text-[9px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 font-black rounded-lg shadow-lg transition flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 shrink-0 ${
+                bossKeys > 0
+                  ? 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white border border-amber-300 ring-2 ring-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-pulse'
+                  : 'bg-slate-800 border border-slate-700 text-slate-400 opacity-60 cursor-not-allowed'
+              }`}
+              title={
+                bossKeys > 0
+                  ? `Desafiar Boss da Fase 10! (Consome 1 Chave - Você possui ${bossKeys})`
+                  : 'Você precisa de 1x Chave do Boss! Derrote Hollows nas Fases 1-9 para coletar.'
+              }
             >
-              <Skull size={11} /> Boss!
+              <Skull size={12} className={bossKeys > 0 ? 'text-amber-200 animate-bounce shrink-0' : 'text-slate-500 shrink-0'} />
+              <span className="font-extrabold tracking-wide">BOSS</span>
+              <span className={`text-[8px] sm:text-[9px] px-1 py-0.2 rounded font-mono font-black ${
+                bossKeys > 0 ? 'bg-black/60 text-amber-300' : 'bg-slate-900 text-slate-500'
+              }`}>
+                -1 🗝️
+              </span>
             </button>
           )}
           {isFightingBoss && (
-            <span className="inline-flex items-center gap-1 text-[9px] sm:text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/50 rounded-lg font-bold animate-pulse shrink-0">
-              <Crown size={11} /> BOSS
+            <span className="inline-flex items-center gap-1 text-[9px] sm:text-xs px-2 py-1 bg-red-600/30 text-red-300 border border-red-500 rounded-lg font-black animate-pulse shrink-0 shadow-[0_0_12px_rgba(239,68,68,0.6)]">
+              <Crown size={12} className="text-amber-400 shrink-0" /> BOSS
             </span>
           )}
         </div>
@@ -374,12 +424,9 @@ export const BattleScreen: React.FC = () => {
           
           {/* Header do Card da Horda */}
           <div className="text-[9px] sm:text-xs font-bold text-red-400 mb-1 sm:mb-2 uppercase tracking-wider flex items-center justify-between border-b border-red-950/60 pb-1 min-w-0">
-            <span className="truncate">Horda ({currentEnemies.length})</span>
-            {currentEnemies.length > 1 && (
-              <span className="text-[7px] sm:text-[10px] bg-red-950 px-1 py-0.2 rounded border border-red-800 text-amber-300 font-mono shrink-0">
-                💥 AoE
-              </span>
-            )}
+            <span className="truncate">
+              {isFightingBoss ? 'Guardião / Boss' : `Horda (${currentEnemies.filter(e => e.currentHp > 0).length}/${currentEnemies.length})`}
+            </span>
           </div>
 
           {/* 3 Slots Fixos Anti-CLS */}
@@ -660,24 +707,66 @@ export const BattleScreen: React.FC = () => {
         </button>
 
         {showLogs && (
-          <div className="p-3 h-32 overflow-y-auto flex flex-col-reverse text-xs font-mono gap-1.5" role="log" aria-live="polite">
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                className={`py-1 px-2.5 rounded-lg border ${
-                  log.type === 'skill'
-                    ? 'text-purple-300 bg-purple-950/40 border-purple-800/40'
-                    : log.type === 'loot'
-                    ? 'text-amber-300 bg-amber-950/50 border-amber-800/50 font-bold'
-                    : log.type === 'victory'
-                    ? 'text-emerald-300 bg-emerald-950/50 border-emerald-800/50 font-bold'
-                    : 'text-gray-300 border-transparent'
-                }`}
-              >
-                <span className="text-gray-500 mr-2">[{log.timestamp}]</span>
-                {log.text}
-              </div>
-            ))}
+          <div className="flex flex-col">
+            {/* Barra de Filtro do Log */}
+            <div className="flex items-center gap-1 p-2 bg-slate-950/80 border-b border-white/5 overflow-x-auto">
+              {[
+                { id: 'all', label: 'Todos' },
+                { id: 'loot', label: '💎 Drops / Loot' },
+                { id: 'skill', label: '⚡ Habilidades' },
+                { id: 'system', label: '📜 Sistema' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setLogFilter(f.id as any)}
+                  className={`text-[9px] sm:text-[10px] px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md font-bold transition cursor-pointer shrink-0 ${
+                    logFilter === f.id
+                      ? 'bg-amber-500 text-black font-extrabold shadow-sm'
+                      : 'bg-black/50 text-slate-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-3 h-52 sm:h-64 overflow-y-auto flex flex-col-reverse text-xs font-mono gap-1.5" role="log" aria-live="polite">
+              {(() => {
+                const filtered = logs.filter((log) => {
+                  if (logFilter === 'all') return true;
+                  if (logFilter === 'loot') return log.type === 'loot';
+                  if (logFilter === 'skill') return log.type === 'skill';
+                  if (logFilter === 'system') return log.type === 'system' || log.type === 'victory';
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-slate-500 text-[10px] text-center italic py-4">
+                      Nenhum registro encontrado nesta categoria.
+                    </div>
+                  );
+                }
+
+                return filtered.map((log) => (
+                  <div
+                    key={log.id}
+                    className={`py-1 px-2.5 rounded-lg border ${
+                      log.type === 'skill'
+                        ? 'text-purple-300 bg-purple-950/40 border-purple-800/40'
+                        : log.type === 'loot'
+                        ? 'text-amber-300 bg-amber-950/50 border-amber-800/50 font-bold'
+                        : log.type === 'victory'
+                        ? 'text-emerald-300 bg-emerald-950/50 border-emerald-800/50 font-bold'
+                        : 'text-gray-300 border-transparent'
+                    }`}
+                  >
+                    <span className="text-gray-500 mr-2">[{log.timestamp}]</span>
+                    {log.text}
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
         )}
       </div>

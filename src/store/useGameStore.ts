@@ -112,6 +112,7 @@ interface GameState {
   sellItem: (instanceId: string) => void;
   salvageItem: (instanceId: string) => void;
   salvageAllNormalItems: () => void;
+  salvageItemsByRarity: (rarity: Rarity) => void;
   craftRecipe: (recipeId: string) => boolean;
   equipSkill: (skillId: string, slot: 1 | 2) => void;
   summonGacha: (costOrbs: number) => { item?: Equipment; skill?: string; isDuplicate: boolean };
@@ -136,6 +137,7 @@ const INITIAL_STATS: CharacterStats = {
   baseSpd: 1.0,
   gold: 200,
   gems: 100,
+  bossKeys: 3,
   prestigeRank: 0,
 };
 
@@ -646,6 +648,17 @@ export const useGameStore = create<GameState>()(
         });
       }
 
+      // Boss Key drop chance (25% per horde in stages 1-9)
+      if (!wasBossDefeated && Math.random() < 0.25) {
+        newStats.bossKeys = (newStats.bossKeys || 0) + 1;
+        logsToAdd.push({
+          id: uid('log_boss_key'),
+          text: `🗝️ CHAVE DO BOSS DROPADA! Um Hollow derrubou 1x Chave do Boss! (Total: ${newStats.bossKeys})`,
+          type: 'loot',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+
       // Check Level Up
       if (newStats.exp >= newStats.nextLevelExp) {
         newStats.level += 1;
@@ -823,11 +836,10 @@ export const useGameStore = create<GameState>()(
       return;
     }
 
-    // Keep alive enemies + dying enemies (so they remain visible at 0 HP for 0.5s)
-    const visibleEnemies = enemies.filter((e) => e.currentHp > 0 || (e.deathTimerSec ?? 0) > 0);
+    // Keep all enemies in currentEnemies so dead mobs stay in their slot marked as defeated
     const hasNewLogs = logsToAdd.length > 0;
     set({
-      currentEnemies: visibleEnemies,
+      currentEnemies: enemies,
       playerCurrentHp: newPlayerHp,
       playerMaxHp: calc.hp,
       skill1Cooldown: newSkill1Cd,
@@ -968,24 +980,36 @@ export const useGameStore = create<GameState>()(
   },
 
   salvageAllNormalItems: () => {
-    const { inventory, craftingMaterials, logs } = get();
-    const normalItems = inventory.filter((i) => i.rarity === 'normal');
-    if (normalItems.length === 0) return;
+    get().salvageItemsByRarity('normal');
+  },
 
-    const { mat1, mat2, mat3 } = getSalvageValue('normal');
-    const totalMat1 = mat1 * normalItems.length;
-    const totalMat2 = mat2 * normalItems.length;
-    const totalMat3 = mat3 * normalItems.length;
+  salvageItemsByRarity: (rarity: Rarity) => {
+    const { inventory, craftingMaterials, logs } = get();
+    const targetItems = inventory.filter((i) => i.rarity === rarity);
+    if (targetItems.length === 0) return;
+
+    const { mat1, mat2, mat3 } = getSalvageValue(rarity);
+    const totalMat1 = mat1 * targetItems.length;
+    const totalMat2 = mat2 * targetItems.length;
+    const totalMat3 = mat3 * targetItems.length;
+
+    const rarityLabels: Record<Rarity, string> = {
+      normal: 'Comuns',
+      rare: 'Raros',
+      epic: 'Épicos',
+      legendary: 'Lendários',
+      transcendent: 'Transcendentes',
+    };
 
     const newLog: BattleLogMessage = {
       id: uid('log_salvage_bulk'),
-      text: `♻️ RECICLAGEM EM LOTE: ${normalItems.length} itens comuns geraram +${totalMat1} Mat.1, +${totalMat2} Mat.2!`,
-      type: 'system',
+      text: `♻️ RECICLAGEM EM LOTE: ${targetItems.length} itens ${rarityLabels[rarity]} geraram +${totalMat1} Reishi, +${totalMat2} Minério${totalMat3 > 0 ? `, +${totalMat3} Essência` : ''}!`,
+      type: 'loot',
       timestamp: new Date().toLocaleTimeString(),
     };
 
     set({
-      inventory: inventory.filter((i) => i.rarity !== 'normal'),
+      inventory: inventory.filter((i) => i.rarity !== rarity),
       craftingMaterials: {
         material1: craftingMaterials.material1 + totalMat1,
         material2: craftingMaterials.material2 + totalMat2,
@@ -1156,16 +1180,35 @@ export const useGameStore = create<GameState>()(
   },
 
   challengeBoss: () => {
-    const { currentBiomeId, difficulty, biomeStage } = get();
+    const { currentBiomeId, difficulty, biomeStage, stats, logs } = get();
     if (biomeStage < 9) return;
+    if (stats.bossKeys < 1) {
+      const noKeyLog: BattleLogMessage = {
+        id: uid('log_no_key'),
+        text: '⚠️ Você precisa de pelo menos 1x Chave do Boss 🗝️ para desafiar o Boss! Derrote Hollows nas Fases 1-9 para obter chaves.',
+        type: 'system',
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      set({ logs: [noKeyLog, ...logs].slice(0, 30) });
+      return;
+    }
+
+    const bossLog: BattleLogMessage = {
+      id: uid('log_enter_boss'),
+      text: `🗝️ ENTRANDO NO BOSS! 1x Chave do Boss consumida. Enfrente o Boss da Fase 10!`,
+      type: 'system',
+      timestamp: new Date().toLocaleTimeString(),
+    };
 
     set({
       biomeStage: 10,
       isFightingBoss: true,
+      stats: { ...stats, bossKeys: stats.bossKeys - 1 },
       consecutiveDeaths: 0,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, 10, true),
       _hitAccumulator: 0,
       _healAccumulator: 0,
+      logs: [bossLog, ...logs].slice(0, 30),
     });
   },
 
@@ -1274,6 +1317,9 @@ export const useGameStore = create<GameState>()(
             getsuga_tensho: { skillId: 'getsuga_tensho', level: 1, unlocked: true },
             bankai_tensa: { skillId: 'bankai_tensa', level: 1, unlocked: true },
           };
+        }
+        if (state.stats && (typeof state.stats.bossKeys !== 'number' || isNaN(state.stats.bossKeys))) {
+          state.stats.bossKeys = 3;
         }
         const calc = computeStats(state);
         state.playerCurrentHp = calc.hp;

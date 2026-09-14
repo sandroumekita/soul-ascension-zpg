@@ -6,10 +6,12 @@ import type { Rarity } from '../types/game';
 import { Sword, Trash2, CheckCircle, Sparkles, Filter, PackageCheck } from 'lucide-react';
 
 export const InventoryPanel: React.FC = () => {
-  const { equippedWeapon, inventory, equipItem, unequipSlot, sellItem, salvageItem, salvageAllNormalItems, autoEquipBestWeapon } = useGameStore();
+  const { equippedWeapon, inventory, equipItem, unequipSlot, sellItem, salvageItem, salvageItemsByRarity, autoEquipBestWeapon } = useGameStore();
   const [selectedFilter, setSelectedFilter] = useState<Rarity | 'all'>('all');
 
-  const hasNormalItems = inventory.some((i) => i.rarity === 'normal');
+  const normalCount = inventory.filter((i) => i.rarity === 'normal').length;
+  const rareCount = inventory.filter((i) => i.rarity === 'rare').length;
+  const epicCount = inventory.filter((i) => i.rarity === 'epic').length;
 
   const filteredInventory = inventory.filter(
     (item) => selectedFilter === 'all' || item.rarity === selectedFilter
@@ -31,14 +33,36 @@ export const InventoryPanel: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 shrink-0">
-          {hasNormalItems && (
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+          {normalCount > 0 && (
             <button
-              onClick={salvageAllNormalItems}
-              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/50 font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
-              title="Desmontar todos os itens de raridade Normal"
+              onClick={() => salvageItemsByRarity('normal')}
+              className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[9px] sm:text-xs rounded-lg shadow hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+              title="Desmontar todos os itens Comuns"
             >
-              ♻️ Desmontar Comuns
+              ♻️ Comuns ({normalCount})
+            </button>
+          )}
+          {rareCount > 0 && (
+            <button
+              onClick={() => salvageItemsByRarity('rare')}
+              className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-blue-950 hover:bg-blue-900 text-blue-300 border border-blue-500/50 font-bold text-[9px] sm:text-xs rounded-lg shadow hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+              title="Desmontar todos os itens Raros"
+            >
+              ♻️ Raros ({rareCount})
+            </button>
+          )}
+          {epicCount > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Deseja realmente desmontar ${epicCount} itens Épicos?`)) {
+                  salvageItemsByRarity('epic');
+                }
+              }}
+              className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-500/50 font-bold text-[9px] sm:text-xs rounded-lg shadow hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+              title="Desmontar todos os itens Épicos"
+            >
+              ♻️ Épicos ({epicCount})
             </button>
           )}
           {inventory.length > 0 && (
@@ -46,7 +70,7 @@ export const InventoryPanel: React.FC = () => {
               onClick={autoEquipBestWeapon}
               className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
             >
-              <Sparkles size={13} /> Auto-Equipar Melhor
+              <Sparkles size={13} /> Auto-Equipar
             </button>
           )}
         </div>
@@ -92,9 +116,25 @@ export const InventoryPanel: React.FC = () => {
 
       {/* Barra de Filtro de Raridades do Inventário */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
-        <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Filter size={13} className="text-amber-400 shrink-0" /> Itens ({filteredInventory.length}/{inventory.length}):
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Filter size={13} className="text-amber-400 shrink-0" /> Itens ({filteredInventory.length}/{inventory.length}):
+          </span>
+          {selectedFilter !== 'all' && filteredInventory.length > 0 && (
+            <button
+              onClick={() => {
+                if (selectedFilter === 'legendary' || selectedFilter === 'transcendent' || selectedFilter === 'epic') {
+                  if (!window.confirm(`Deseja realmente desmontar todos os ${filteredInventory.length} itens ${selectedFilter.toUpperCase()}?`)) return;
+                }
+                salvageItemsByRarity(selectedFilter);
+              }}
+              className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/50 font-bold transition flex items-center gap-1 cursor-pointer shadow-sm"
+              title={`Desmontar todos os itens da categoria ${selectedFilter}`}
+            >
+              ♻️ Desmontar {selectedFilter} ({filteredInventory.length})
+            </button>
+          )}
+        </div>
 
         <div className="flex gap-1 overflow-x-auto max-w-full pb-1">
           {(['all', 'normal', 'rare', 'epic', 'legendary', 'transcendent'] as const).map((r) => (

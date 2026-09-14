@@ -308,6 +308,49 @@ export const BattleScreen: React.FC = () => {
             </span>
             <span>⚡ {baseSpd.toFixed(2)}/s</span>
           </div>
+
+          {/* Indicadores compactos de CD no Card do Herói */}
+          <div className="flex justify-center items-center gap-2 mt-2 z-10 text-[10px] font-mono">
+            {skill1Obj && (
+              <div className={`px-2 py-0.5 rounded-md border flex items-center gap-1 transition ${
+                skill1Cooldown > 0
+                  ? 'bg-purple-950/50 border-purple-900/60 text-purple-300/80'
+                  : 'bg-purple-950/90 border-purple-500/70 text-purple-200 font-bold'
+              }`}>
+                <span>⚡ {skill1Obj.name.length > 12 ? `${skill1Obj.name.slice(0, 10)}...` : skill1Obj.name}:</span>
+                {skill1Cooldown > 0 ? (
+                  <span className="font-bold text-purple-300 flex items-center gap-0.5">
+                    <strong className="text-[8px] bg-purple-500/30 text-purple-200 px-1 rounded">CD</strong>
+                    {skill1Cooldown.toFixed(1)}s
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 font-bold">PRONTO</span>
+                )}
+              </div>
+            )}
+
+            {skill2Obj && (
+              <div className={`px-2 py-0.5 rounded-md border flex items-center gap-1 transition ${
+                activeBuff
+                  ? 'bg-amber-950/90 border-amber-400 text-amber-300 font-bold animate-pulse'
+                  : skill2Cooldown > 0
+                  ? 'bg-amber-950/50 border-amber-900/60 text-amber-300/80'
+                  : 'bg-amber-950/90 border-amber-500/70 text-amber-200 font-bold'
+              }`}>
+                <span>🔥 {skill2Obj.name.length > 12 ? `${skill2Obj.name.slice(0, 10)}...` : skill2Obj.name}:</span>
+                {activeBuff ? (
+                  <span className="text-amber-300 font-bold">({activeBuff.durationLeft.toFixed(0)}s)</span>
+                ) : skill2Cooldown > 0 ? (
+                  <span className="font-bold text-amber-300 flex items-center gap-0.5">
+                    <strong className="text-[8px] bg-amber-500/30 text-amber-200 px-1 rounded">CD</strong>
+                    {skill2Cooldown.toFixed(1)}s
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 font-bold">PRONTO</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Lado Direito - Horda Inimiga */}
@@ -414,32 +457,53 @@ export const BattleScreen: React.FC = () => {
         {/* Slot 1: Habilidade / Hadō */}
         {(() => {
           const isSkillRecentlyUsed = !!(lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500);
+          const maxCd1 = skill1Obj?.cooldownSec || 1;
+          const cdPct1 = Math.max(0, Math.min(100, ((maxCd1 - skill1Cooldown) / maxCd1) * 100));
+
           return (
-            <div className={`p-3 rounded-xl border flex items-center justify-between backdrop-blur-md transition-all duration-300 ${
+            <div className={`p-3 rounded-xl border flex flex-col justify-between backdrop-blur-md transition-all duration-300 ${
               isSkillRecentlyUsed
                 ? 'bg-purple-950/90 border-purple-400 ring-2 ring-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] scale-[1.02]'
-                : 'bg-black/60 border-purple-500/40'
+                : skill1Cooldown > 0
+                ? 'bg-black/70 border-purple-950/80 opacity-90'
+                : 'bg-black/60 border-purple-500/40 hover:border-purple-500/70'
             }`}>
-              <div>
-                <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Zap size={11} /> {GAME_THEME.skillSlot1Label}
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Zap size={11} /> {GAME_THEME.skillSlot1Label}
+                  </div>
+                  <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
+                    {skill1Obj ? skill1Obj.name : 'Nenhuma Habilidade Equipada'}
+                  </div>
                 </div>
-                <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
-                  {skill1Obj ? skill1Obj.name : 'Nenhuma Habilidade Equipada'}
-                </div>
+                {isSkillRecentlyUsed ? (
+                  <span className="text-[11px] font-black text-purple-200 bg-purple-900 px-2.5 py-1 rounded-lg border border-purple-400 shadow-md animate-bounce">
+                    ⚡ DISPARADA!
+                  </span>
+                ) : skill1Cooldown > 0 ? (
+                  <div className="flex items-center gap-1.5 bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/70 font-mono text-xs font-bold shadow-inner">
+                    <span className="text-[9px] font-black bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
+                    <span>{skill1Cooldown.toFixed(1)}s</span>
+                  </div>
+                ) : (
+                  <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    PRONTO
+                  </span>
+                )}
               </div>
-              {isSkillRecentlyUsed ? (
-                <span className="text-[11px] font-black text-purple-200 bg-purple-900 px-2.5 py-1 rounded-lg border border-purple-400 shadow-md animate-bounce">
-                  ⚡ DISPARADA!
-                </span>
-              ) : skill1Cooldown > 0 ? (
-                <span className="text-xs font-mono bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500 font-bold">
-                  {skill1Cooldown.toFixed(1)}s
-                </span>
-              ) : (
-                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md">
-                  PRONTO
-                </span>
+
+              {/* Barra de Recarga (CD Progress) */}
+              {skill1Obj && (
+                <div className="w-full bg-slate-900/80 h-1.5 rounded-full overflow-hidden mt-2 border border-purple-950/60">
+                  <div
+                    className={`h-full transition-all duration-100 ${
+                      skill1Cooldown > 0 ? 'bg-gradient-to-r from-purple-700 to-purple-400' : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${cdPct1}%` }}
+                  />
+                </div>
               )}
             </div>
           );
@@ -449,32 +513,59 @@ export const BattleScreen: React.FC = () => {
         {(() => {
           const isBankaiActive = !!activeBuff;
           const isBankaiJustFired = !!(lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2000);
+          const maxCd2 = skill2Obj?.cooldownSec || 1;
+          const cdPct2 = isBankaiActive
+            ? Math.max(0, Math.min(100, (activeBuff.durationLeft / (skill2Obj?.durationSec || 10)) * 100))
+            : Math.max(0, Math.min(100, ((maxCd2 - skill2Cooldown) / maxCd2) * 100));
+
           return (
-            <div className={`p-3 rounded-xl border flex items-center justify-between backdrop-blur-md transition-all duration-300 ${
+            <div className={`p-3 rounded-xl border flex flex-col justify-between backdrop-blur-md transition-all duration-300 ${
               isBankaiActive || isBankaiJustFired
                 ? 'bg-gradient-to-r from-amber-950/90 via-black to-red-950/90 border-amber-400 ring-2 ring-amber-400/90 shadow-[0_0_25px_rgba(245,158,11,0.8)] animate-pulse'
-                : 'bg-black/60 border-amber-500/40'
+                : skill2Cooldown > 0
+                ? 'bg-black/70 border-amber-950/80 opacity-90'
+                : 'bg-black/60 border-amber-500/40 hover:border-amber-500/70'
             }`}>
-              <div>
-                <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Flame size={11} /> {GAME_THEME.skillSlot2Label}
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Flame size={11} /> {GAME_THEME.skillSlot2Label}
+                  </div>
+                  <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
+                    {skill2Obj ? skill2Obj.name : 'Nenhuma Bankai Equipada'}
+                  </div>
                 </div>
-                <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
-                  {skill2Obj ? skill2Obj.name : 'Nenhuma Bankai Equipada'}
-                </div>
+                {isBankaiActive ? (
+                  <span className="text-[11px] font-black text-amber-300 bg-amber-950 px-2.5 py-1 rounded-lg border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
+                    🔥 ATIVA ({activeBuff.durationLeft.toFixed(1)}s)
+                  </span>
+                ) : skill2Cooldown > 0 ? (
+                  <div className="flex items-center gap-1.5 bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500/70 font-mono text-xs font-bold shadow-inner">
+                    <span className="text-[9px] font-black bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
+                    <span>{skill2Cooldown.toFixed(1)}s</span>
+                  </div>
+                ) : (
+                  <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md flex items-center gap-1 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                    PRONTO
+                  </span>
+                )}
               </div>
-              {isBankaiActive ? (
-                <span className="text-[11px] font-black text-amber-300 bg-amber-950 px-2.5 py-1 rounded-lg border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
-                  🔥 ATIVA ({activeBuff.durationLeft.toFixed(1)}s)
-                </span>
-              ) : skill2Cooldown > 0 ? (
-                <span className="text-xs font-mono bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500 font-bold">
-                  {skill2Cooldown.toFixed(1)}s
-                </span>
-              ) : (
-                <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md animate-pulse">
-                  PRONTO
-                </span>
+
+              {/* Barra de Recarga (CD Progress) */}
+              {skill2Obj && (
+                <div className="w-full bg-slate-900/80 h-1.5 rounded-full overflow-hidden mt-2 border border-amber-950/60">
+                  <div
+                    className={`h-full transition-all duration-100 ${
+                      isBankaiActive
+                        ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-red-500'
+                        : skill2Cooldown > 0
+                        ? 'bg-gradient-to-r from-amber-700 to-amber-400'
+                        : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${cdPct2}%` }}
+                  />
+                </div>
               )}
             </div>
           );

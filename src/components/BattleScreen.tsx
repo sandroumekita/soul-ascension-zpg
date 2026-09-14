@@ -82,6 +82,7 @@ export const BattleScreen: React.FC = () => {
     ownedSkills,
     unlockedBiomes,
     bossKeys,
+    maxUnlockedStagePerBiome,
   } = useGameStore(useShallow((state) => ({
     currentEnemies: state.currentEnemies,
     playerCurrentHp: state.playerCurrentHp,
@@ -107,6 +108,7 @@ export const BattleScreen: React.FC = () => {
     ownedSkills: state.ownedSkills,
     unlockedBiomes: state.unlockedBiomes,
     bossKeys: state.stats.bossKeys ?? 0,
+    maxUnlockedStagePerBiome: state.maxUnlockedStagePerBiome,
   })));
 
   // Actions (stable references, won't trigger re-renders)
@@ -157,7 +159,9 @@ export const BattleScreen: React.FC = () => {
   const totalAtk = baseAtk + weaponAtk;
   const calculatedDps = Math.round(totalAtk * baseSpd);
 
-  const canChallengeBoss = biomeStage >= 9;
+  const currentKey = `${currentBiomeId}_${difficulty}`;
+  const maxUnlockedStage = maxUnlockedStagePerBiome?.[currentKey] ?? Math.max(biomeStage, 1);
+  const canChallengeBoss = maxUnlockedStage >= 10 || biomeStage >= 9;
 
   const toggleLogs = useCallback(() => setShowLogs(prev => !prev), []);
 
@@ -257,22 +261,38 @@ export const BattleScreen: React.FC = () => {
         </div>
         <div className="flex gap-1 sm:gap-1.5 items-center w-full justify-between">
           {STAGE_NUMBERS.map((stageNum) => {
-            const isCompleted = stageNum < biomeStage;
+            const isCompleted = stageNum < maxUnlockedStage;
             const isCurrent = stageNum === biomeStage;
+            const isUnlocked = stageNum <= maxUnlockedStage;
+            const isBoss = stageNum === 10;
+
             return (
               <button
                 key={stageNum}
-                onClick={() => selectStage(stageNum)}
-                className={`w-[22px] h-[22px] sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-mono font-bold border transition cursor-pointer hover:scale-115 active:scale-95 shrink-0 ${
-                  isCompleted
-                    ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400 hover:bg-emerald-800'
-                    : isCurrent
-                    ? 'bg-gradient-to-r from-amber-500 to-red-600 border-white text-white scale-110 shadow-lg shadow-amber-500/50 animate-pulse'
-                    : 'bg-slate-950 border-slate-800 text-slate-600 hover:border-slate-600'
+                onClick={() => isUnlocked && selectStage(stageNum)}
+                disabled={!isUnlocked}
+                className={`w-[22px] h-[22px] sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-mono font-bold border transition shrink-0 ${
+                  isCurrent
+                    ? 'bg-gradient-to-r from-amber-500 to-red-600 border-white text-white scale-110 shadow-lg shadow-amber-500/50 animate-pulse cursor-pointer'
+                    : isCompleted
+                    ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400 hover:bg-emerald-800 hover:scale-110 active:scale-95 cursor-pointer'
+                    : isUnlocked
+                    ? 'bg-slate-800 border-amber-500/50 text-amber-200 hover:bg-slate-700 hover:border-amber-400 hover:scale-110 active:scale-95 cursor-pointer'
+                    : 'bg-slate-950/40 border-slate-900 text-slate-700 opacity-40 cursor-not-allowed select-none'
                 }`}
-                title={`Ir para a Fase ${stageNum}`}
+                title={
+                  !isUnlocked
+                    ? isBoss
+                      ? 'Boss (Bloqueado - Vença a Fase 9 primeiro)'
+                      : `Fase ${stageNum} (Bloqueada - Vença a Fase ${stageNum - 1} primeiro)`
+                    : isCurrent
+                    ? `Fase ${stageNum} (Atual)`
+                    : isBoss
+                    ? 'Desafiar Boss (Fase 10)'
+                    : `Ir para a Fase ${stageNum}`
+                }
               >
-                {stageNum === 10 ? '👑' : stageNum}
+                {isBoss ? (isUnlocked ? '👑' : '🔒') : stageNum}
               </button>
             );
           })}

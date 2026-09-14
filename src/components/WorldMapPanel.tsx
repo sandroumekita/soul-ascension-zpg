@@ -19,6 +19,7 @@ export const WorldMapPanel: React.FC = () => {
     biomeStage,
     unlockedBiomes,
     unlockedDifficulties,
+    maxUnlockedStagePerBiome,
     changeBiome,
     changeDifficulty,
   } = useGameStore(useShallow((state) => ({
@@ -27,6 +28,7 @@ export const WorldMapPanel: React.FC = () => {
     biomeStage: state.biomeStage,
     unlockedBiomes: state.unlockedBiomes,
     unlockedDifficulties: state.unlockedDifficulties,
+    maxUnlockedStagePerBiome: state.maxUnlockedStagePerBiome,
     changeBiome: state.changeBiome,
     changeDifficulty: state.changeDifficulty,
   })));
@@ -216,7 +218,12 @@ export const WorldMapPanel: React.FC = () => {
                       <>
                         <span className="text-slate-400 font-mono">Progresso:</span>
                         <span className="text-amber-400 font-bold font-mono text-xs sm:text-sm">
-                          {isCurrent ? `Fase ${biomeStage} / 10` : '10 / 10 (Concluído)'}
+                          {(() => {
+                            const biomeKey = `${biome.id}_${difficulty}`;
+                            const maxStg = maxUnlockedStagePerBiome?.[biomeKey] ?? (biome.id !== currentBiomeId ? 10 : biomeStage);
+                            if (maxStg >= 10) return '10 / 10 (Concluído)';
+                            return `Fase ${isCurrent ? biomeStage : maxStg} / 10`;
+                          })()}
                         </span>
                       </>
                     ) : (

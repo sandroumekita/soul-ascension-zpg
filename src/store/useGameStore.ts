@@ -50,6 +50,7 @@ interface GameState {
   currentBiomeId: string;
   difficulty: Difficulty;
   biomeStage: number; // 1 to 10 (10 is Boss)
+  maxUnlockedStagePerBiome: Record<string, number>; // Progresso de fases desbloqueadas por bioma e dificuldade
   isFightingBoss: boolean;
   autoAdvance: boolean;
   unlockedBiomes: string[];
@@ -363,6 +364,9 @@ export const useGameStore = create<GameState>()(
   currentBiomeId: 'karakura',
   difficulty: 'normal',
   biomeStage: 1,
+  maxUnlockedStagePerBiome: {
+    karakura_normal: 1,
+  },
   isFightingBoss: false,
   autoAdvance: true,
   unlockedBiomes: ['karakura'],
@@ -707,7 +711,10 @@ export const useGameStore = create<GameState>()(
         });
       }
 
-      // Progress Stage
+      // Progress Stage & Unlocked Stages
+      const currentBiomeKey = `${state.currentBiomeId}_${state.difficulty}`;
+      const newMaxUnlockedStages = { ...state.maxUnlockedStagePerBiome };
+
       let nextStage = state.biomeStage;
       let nextIsBoss = false;
       let nextBiomeId = state.currentBiomeId;
@@ -715,6 +722,7 @@ export const useGameStore = create<GameState>()(
       let newUnlockedDiffs = [...state.unlockedDifficulties];
 
       if (wasBossDefeated || state.biomeStage === 10) {
+        newMaxUnlockedStages[currentBiomeKey] = 10;
         logsToAdd.push({
           id: uid('log_boss_win'),
           text: `🏆 Boss derrotado! Concluiu as 10 fases!`,
@@ -727,6 +735,10 @@ export const useGameStore = create<GameState>()(
           const nextBiomeObj = BIOMES_CATALOG[currentBiomeIdx + 1];
           nextBiomeId = nextBiomeObj.id;
           nextStage = 1;
+          const nextBiomeKey = `${nextBiomeId}_${state.difficulty}`;
+          if (!newMaxUnlockedStages[nextBiomeKey]) {
+            newMaxUnlockedStages[nextBiomeKey] = 1;
+          }
           if (!newUnlockedBiomes.includes(nextBiomeId)) {
             newUnlockedBiomes.push(nextBiomeId);
           }
@@ -756,6 +768,10 @@ export const useGameStore = create<GameState>()(
           }
         }
       } else {
+        // Normal stage defeated: unlock next stage!
+        const prevUnlocked = newMaxUnlockedStages[currentBiomeKey] || 1;
+        newMaxUnlockedStages[currentBiomeKey] = Math.max(prevUnlocked, Math.min(10, state.biomeStage + 1));
+
         if (state.autoAdvance) {
           nextStage = Math.min(9, state.biomeStage + 1);
         } else {
@@ -780,6 +796,7 @@ export const useGameStore = create<GameState>()(
         craftingMaterials: newMaterials,
         currentBiomeId: nextBiomeId,
         biomeStage: nextStage,
+        maxUnlockedStagePerBiome: newMaxUnlockedStages,
         isFightingBoss: nextIsBoss,
         unlockedBiomes: newUnlockedBiomes,
         unlockedDifficulties: newUnlockedDiffs,
@@ -1136,15 +1153,26 @@ export const useGameStore = create<GameState>()(
   },
 
   selectStage: (targetStage: number) => {
-    const { currentBiomeId, difficulty } = get();
+    const { currentBiomeId, difficulty, maxUnlockedStagePerBiome } = get();
     if (targetStage < 1 || targetStage > 10) return;
 
-    const isBoss = targetStage === 10;
+    const currentKey = `${currentBiomeId}_${difficulty}`;
+    const maxUnlocked = maxUnlockedStagePerBiome?.[currentKey] ?? 1;
+
+    // Só é permitido avançar para a fase se o jogador já venceu as anteriores
+    if (targetStage > maxUnlocked) return;
+
+    // A fase 10 é a sala do Boss que consome 1x Chave do Boss
+    if (targetStage === 10) {
+      get().challengeBoss();
+      return;
+    }
+
     set({
       biomeStage: targetStage,
-      isFightingBoss: isBoss,
+      isFightingBoss: false,
       consecutiveDeaths: 0,
-      currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, targetStage, isBoss),
+      currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, targetStage, false),
       _hitAccumulator: 0,
       _healAccumulator: 0,
     });
@@ -1179,8 +1207,12 @@ export const useGameStore = create<GameState>()(
   },
 
   challengeBoss: () => {
-    const { currentBiomeId, difficulty, biomeStage, stats, logs } = get();
-    if (biomeStage < 9) return;
+    const { currentBiomeId, difficulty, biomeStage, stats, logs, maxUnlockedStagePerBiome } = get();
+    const currentKey = `${currentBiomeId}_${difficulty}`;
+    const maxUnlocked = maxUnlockedStagePerBiome?.[currentKey] ?? 1;
+
+    // Só pode desafiar se já tiver liberado a fase 10 ou estiver no estágio 9
+    if (maxUnlocked < 10 && biomeStage < 9) return;
     if (stats.bossKeys < 1) {
       const noKeyLog: BattleLogMessage = {
         id: uid('log_no_key'),
@@ -1234,6 +1266,7 @@ export const useGameStore = create<GameState>()(
           currentBiomeId: state.currentBiomeId,
           difficulty: state.difficulty,
           biomeStage: state.biomeStage,
+          maxUnlockedStagePerBiome: state.maxUnlockedStagePerBiome,
           autoAdvance: state.autoAdvance,
           unlockedBiomes: state.unlockedBiomes,
           unlockedDifficulties: state.unlockedDifficulties,
@@ -1294,6 +1327,7 @@ export const useGameStore = create<GameState>()(
         currentBiomeId: state.currentBiomeId,
         difficulty: state.difficulty,
         biomeStage: state.biomeStage,
+        maxUnlockedStagePerBiome: state.maxUnlockedStagePerBiome,
         autoAdvance: state.autoAdvance,
         unlockedBiomes: state.unlockedBiomes,
         unlockedDifficulties: state.unlockedDifficulties,
@@ -1308,6 +1342,21 @@ export const useGameStore = create<GameState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        if (!state.maxUnlockedStagePerBiome) {
+          state.maxUnlockedStagePerBiome = {};
+        }
+        const currentKey = `${state.currentBiomeId || 'karakura'}_${state.difficulty || 'normal'}`;
+        if (!state.maxUnlockedStagePerBiome[currentKey]) {
+          state.maxUnlockedStagePerBiome[currentKey] = Math.max(state.biomeStage || 1, 1);
+        }
+        if (state.unlockedBiomes && state.unlockedBiomes.length > 1) {
+          state.unlockedBiomes.forEach((bId) => {
+            const bKey = `${bId}_${state.difficulty || 'normal'}`;
+            if (!state.maxUnlockedStagePerBiome[bKey]) {
+              state.maxUnlockedStagePerBiome[bKey] = bId === state.currentBiomeId ? Math.max(state.biomeStage || 1, 1) : 10;
+            }
+          });
+        }
         if (!state.craftingMaterials) {
           state.craftingMaterials = { material1: 20, material2: 10, material3: 2 };
         }

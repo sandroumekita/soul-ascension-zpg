@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { 
   CharacterStats, Equipment, OwnedSkill, Enemy, Difficulty, BattleLogMessage, Rarity
 } from '../types/game';
@@ -120,6 +121,8 @@ interface GameState {
   challengeBoss: () => void;
   toggleAutoAdvance: () => void;
   resetProgressSave: () => void;
+  exportSaveData: () => string;
+  importSaveData: (jsonString: string) => boolean;
 }
 
 const INITIAL_STATS: CharacterStats = {
@@ -306,7 +309,55 @@ const MATERIAL_DROP_RATES = {
 
 const SAVED_STATE_KEY = 'soul_ascension_save_v1';
 
-export const useGameStore = create<GameState>((set, get) => ({
+let _pendingSaveVal: string | null = null;
+let _saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const flushSave = () => {
+  if (_pendingSaveVal !== null) {
+    try {
+      localStorage.setItem(SAVED_STATE_KEY, _pendingSaveVal);
+    } catch (e) {
+      console.error('[Soul Ascension] Falha ao sincronizar save no localStorage:', e);
+    }
+  }
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', flushSave);
+}
+
+const throttledStorage = {
+  getItem: (name: string) => {
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (_name: string, value: string) => {
+    _pendingSaveVal = value;
+    if (!_saveTimeout) {
+      _saveTimeout = setTimeout(() => {
+        _saveTimeout = null;
+        flushSave();
+      }, 1000);
+    }
+  },
+  removeItem: (name: string) => {
+    _pendingSaveVal = null;
+    if (_saveTimeout) {
+      clearTimeout(_saveTimeout);
+      _saveTimeout = null;
+    }
+    try {
+      localStorage.removeItem(name);
+    } catch {}
+  },
+};
+
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
   stats: INITIAL_STATS,
   currentBiomeId: 'karakura',
   difficulty: 'normal',
@@ -1124,7 +1175,119 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   resetProgressSave: () => {
-    localStorage.removeItem(SAVED_STATE_KEY);
-    window.location.reload();
+    if (typeof window !== 'undefined' && window.confirm('Deseja realmente reiniciar todo o progresso do jogo? Esta ação não pode ser desfeita.')) {
+      throttledStorage.removeItem(SAVED_STATE_KEY);
+      window.location.reload();
+    }
   },
-}));
+
+  exportSaveData: () => {
+    flushSave();
+    let raw = throttledStorage.getItem(SAVED_STATE_KEY);
+    if (!raw) {
+      const state = get();
+      const payload = {
+        state: {
+          stats: state.stats,
+          currentBiomeId: state.currentBiomeId,
+          difficulty: state.difficulty,
+          biomeStage: state.biomeStage,
+          autoAdvance: state.autoAdvance,
+          unlockedBiomes: state.unlockedBiomes,
+          unlockedDifficulties: state.unlockedDifficulties,
+          equippedSlot1SkillId: state.equippedSlot1SkillId,
+          equippedSlot2SkillId: state.equippedSlot2SkillId,
+          equippedWeapon: state.equippedWeapon,
+          equippedShihakusho: state.equippedShihakusho,
+          equippedAccessory: state.equippedAccessory,
+          inventory: state.inventory,
+          craftingMaterials: state.craftingMaterials,
+          ownedSkills: state.ownedSkills,
+        },
+        version: 1,
+      };
+      raw = JSON.stringify(payload);
+      try {
+        localStorage.setItem(SAVED_STATE_KEY, raw);
+      } catch {}
+    }
+    try {
+      return btoa(unescape(encodeURIComponent(raw)));
+    } catch {
+      return btoa(raw);
+    }
+  },
+
+  importSaveData: (encodedOrJson: string) => {
+    try {
+      let jsonStr = encodedOrJson.trim();
+      if (!jsonStr.startsWith('{')) {
+        try {
+          jsonStr = decodeURIComponent(escape(atob(jsonStr)));
+        } catch {
+          jsonStr = atob(jsonStr);
+        }
+      }
+      const parsed = JSON.parse(jsonStr);
+      if (parsed && (parsed.state || parsed.stats)) {
+        const stateData = parsed.state || parsed;
+        if (stateData.stats && stateData.currentBiomeId) {
+          localStorage.setItem(SAVED_STATE_KEY, JSON.stringify({ state: stateData, version: 1 }));
+          window.location.reload();
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error('[Soul Ascension] Erro ao importar save:', err);
+    }
+    return false;
+  },
+}),
+    {
+      name: SAVED_STATE_KEY,
+      storage: createJSONStorage(() => throttledStorage),
+      version: 1,
+      partialize: (state) => ({
+        stats: state.stats,
+        currentBiomeId: state.currentBiomeId,
+        difficulty: state.difficulty,
+        biomeStage: state.biomeStage,
+        autoAdvance: state.autoAdvance,
+        unlockedBiomes: state.unlockedBiomes,
+        unlockedDifficulties: state.unlockedDifficulties,
+        equippedSlot1SkillId: state.equippedSlot1SkillId,
+        equippedSlot2SkillId: state.equippedSlot2SkillId,
+        equippedWeapon: state.equippedWeapon,
+        equippedShihakusho: state.equippedShihakusho,
+        equippedAccessory: state.equippedAccessory,
+        inventory: state.inventory,
+        craftingMaterials: state.craftingMaterials,
+        ownedSkills: state.ownedSkills,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (!state.craftingMaterials) {
+          state.craftingMaterials = { material1: 20, material2: 10, material3: 2 };
+        }
+        if (!state.ownedSkills) {
+          state.ownedSkills = {
+            getsuga_tensho: { skillId: 'getsuga_tensho', level: 1, unlocked: true },
+            bankai_tensa: { skillId: 'bankai_tensa', level: 1, unlocked: true },
+          };
+        }
+        const calc = computeStats(state);
+        state.playerCurrentHp = calc.hp;
+        state.playerMaxHp = calc.hp;
+        state._cachedStats = calc;
+        state._cachedSkill1 = SKILLS_CATALOG.find(s => s.id === state.equippedSlot1SkillId) || null;
+        state._cachedSkill2 = SKILLS_CATALOG.find(s => s.id === state.equippedSlot2SkillId) || null;
+        state.currentEnemies = spawnEnemiesForBiome(
+          state.currentBiomeId || 'karakura',
+          state.difficulty || 'normal',
+          state.biomeStage || 1,
+          false
+        );
+      },
+    }
+  )
+);

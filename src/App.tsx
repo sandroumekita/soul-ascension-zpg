@@ -8,12 +8,14 @@ import { CraftingPanel } from './components/CraftingPanel';
 import { SkillsPanel } from './components/SkillsPanel';
 import { GachaShopPanel } from './components/GachaShopPanel';
 import { WorldMapPanel } from './components/WorldMapPanel';
+import { SaveModal } from './components/SaveModal';
 import { Swords, Shield, ShoppingBag, Sparkles, MapPin, RefreshCw, Hammer } from 'lucide-react';
 
 type Tab = 'battle' | 'stats' | 'inventory' | 'crafting' | 'skills' | 'shop' | 'biomes';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('battle');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false);
   const tick = useGameStore((state) => state.tick);
   const resetSave = useGameStore((state) => state.resetProgressSave);
 
@@ -56,13 +58,23 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={resetSave}
-          className="text-[10px] sm:text-xs text-gray-400 hover:text-red-400 transition flex items-center gap-1 bg-black/40 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-white/10 hover:border-red-500/50 cursor-pointer shrink-0"
-          title={GAME_THEME.resetSaveText}
-        >
-          <RefreshCw size={11} /> <span className="hidden xs:inline">{GAME_THEME.resetSaveText}</span><span className="xs:hidden">Reset</span>
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setIsSaveModalOpen(true)}
+            className="text-[10px] sm:text-xs text-amber-300 hover:text-amber-200 transition flex items-center gap-1 bg-amber-950/50 hover:bg-amber-900/60 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-amber-500/40 hover:border-amber-400 cursor-pointer font-bold shadow"
+            title="Salvar, Exportar ou Importar Progresso"
+          >
+            <span>💾</span> <span className="hidden xs:inline">Save</span>
+          </button>
+
+          <button
+            onClick={resetSave}
+            className="text-[10px] sm:text-xs text-gray-400 hover:text-red-400 transition flex items-center gap-1 bg-black/40 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-white/10 hover:border-red-500/50 cursor-pointer shrink-0"
+            title={GAME_THEME.resetSaveText}
+          >
+            <RefreshCw size={11} /> <span className="hidden xs:inline">{GAME_THEME.resetSaveText}</span><span className="xs:hidden">Reset</span>
+          </button>
+        </div>
       </header>
 
       {/* Área de Conteúdo Ativo com Transições Fluidas e Scroll Bounded */}
@@ -159,6 +171,9 @@ export const App: React.FC = () => {
           </button>
         </div>
       </nav>
+
+      {/* Modal de Save & Backup Local */}
+      <SaveModal isOpen={isSaveModalOpen} onClose={() => setIsSaveModalOpen(false)} />
     </div>
   );
 };

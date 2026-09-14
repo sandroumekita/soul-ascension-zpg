@@ -222,53 +222,42 @@ export const BattleScreen: React.FC = () => {
       </div>
 
       {/* Arena de Batalha */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2 relative">
-        {/* Banner de Ativação Épica de Bankai */}
-        {lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2200 && (
-          <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none overflow-hidden">
-            <div className="w-full bg-gradient-to-r from-transparent via-amber-950/95 to-transparent border-y-2 border-amber-400/90 py-3.5 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.9)] animate-pulse backdrop-blur-xs">
-              <span className="text-[10px] font-mono font-extrabold text-amber-300 tracking-[0.3em] uppercase">
-                ✦ LIBERAÇÃO ESPIRITUAL SUPREMA ✦
-              </span>
-              <div className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-300 to-red-500 uppercase tracking-widest font-mono drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] mt-0.5">
-                卍解 · {lastBankaiUsed.name}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Banner de Disparo de Habilidade (Hadō) */}
-        {lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1600 && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center gap-2 bg-gradient-to-r from-purple-950/95 via-indigo-950/95 to-purple-950/95 border-2 border-purple-400 px-4 py-1.5 rounded-full shadow-[0_0_25px_rgba(168,85,247,0.85)] animate-bounce">
-            <Zap size={14} className="text-purple-300 animate-spin" />
-            <span className="text-xs font-black text-purple-200 uppercase tracking-wider font-mono">
-              ⚡ HABILIDADE: {lastSkillUsed.name}!
-            </span>
-          </div>
-        )}
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
         {/* Lado Esquerdo - Herói */}
         <div className={`bg-slate-950/80 p-4 sm:p-5 rounded-2xl border ${
           playerDeathTimerSec > 0
-            ? 'border-red-600/80 shadow-[0_0_30px_rgba(239,68,68,0.5)]'
+            ? 'border-red-600/80 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
             : activeBuff
-            ? 'border-amber-500/80 shadow-[0_0_25px_rgba(245,158,11,0.4)]'
+            ? 'border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
             : 'border-cyan-500/40 shadow-xl'
         } flex flex-col items-center justify-between relative overflow-hidden min-h-[300px]`}>
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Overlay de Morte com Countdown de 3s */}
+          {/* Notificação Sutil de Bankai (apenas dentro do card do personagem) */}
+          {lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2000 && (
+            <div className="absolute top-11 z-30 pointer-events-none flex items-center gap-1 bg-amber-950/90 border border-amber-400/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-amber-300 shadow-md animate-bounce">
+              <span>🔥 卍解 · {lastBankaiUsed.name}</span>
+            </div>
+          )}
+
+          {/* Notificação Sutil de Habilidade (apenas dentro do card do personagem) */}
+          {lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500 && (
+            <div className="absolute top-11 z-30 pointer-events-none flex items-center gap-1 bg-purple-950/90 border border-purple-400/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-purple-200 shadow-md animate-bounce">
+              <Zap size={11} className="text-purple-300" />
+              <span>{lastSkillUsed.name}</span>
+            </div>
+          )}
+
+          {/* Overlay Sutil de Morte / Recuperação (apenas dentro do card do personagem) */}
           {playerDeathTimerSec > 0 && (
-            <div className="absolute inset-0 bg-black/85 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center z-40 border-2 border-red-600/90 p-4 shadow-2xl animate-pulse">
-              <div className="text-4xl animate-bounce mb-1">💀</div>
-              <span className="text-xs font-mono font-black text-red-400 uppercase tracking-widest text-center">
-                SHINIGAMI DERROTADO
-              </span>
-              <p className="text-[11px] text-slate-300 font-mono mt-1 text-center">
-                Recuperando Reiatsu em:
-              </p>
-              <div className="text-4xl font-black font-mono text-red-500 mt-1 drop-shadow-[0_2px_15px_rgba(239,68,68,0.9)]">
-                {playerDeathTimerSec.toFixed(1)}s
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-30 p-3 pointer-events-none">
+              <div className="bg-slate-950/95 border border-red-500/80 px-4 py-2.5 rounded-xl shadow-2xl flex flex-col items-center gap-1 text-center">
+                <span className="text-[11px] font-mono font-extrabold text-red-400 flex items-center gap-1.5">
+                  💀 Shinigami Derrotado
+                </span>
+                <span className="text-xs text-slate-300 font-mono">
+                  Recuperando em: <strong className="text-red-400 text-sm font-black">{playerDeathTimerSec.toFixed(1)}s</strong>
+                </span>
               </div>
             </div>
           )}
@@ -277,8 +266,8 @@ export const BattleScreen: React.FC = () => {
             <span className="font-extrabold text-cyan-300 text-sm sm:text-base flex items-center gap-1.5">
               <Sparkles size={16} className="text-cyan-400" /> {GAME_THEME.heroTitle}
               {activeBuff && (
-                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                  🔥 BANKAI
+                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded-full font-bold animate-pulse flex items-center gap-1">
+                  🔥 BANKAI ({activeBuff.durationLeft.toFixed(0)}s)
                 </span>
               )}
             </span>

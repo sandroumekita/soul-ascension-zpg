@@ -17,25 +17,73 @@ export const App: React.FC = () => {
   const tick = useGameStore((state) => state.tick);
   const resetSave = useGameStore((state) => state.resetProgressSave);
 
-  const stats = useGameStore((state) => state.stats);
-  const inventory = useGameStore((state) => state.inventory);
-  const equippedWeapon = useGameStore((state) => state.equippedWeapon);
+  // Optimized boolean selectors — prevents re-rendering App when gold/exp changes
+  const hasStatPoints = useGameStore((state) => state.stats.statPoints > 0);
+  const hasBetterWeapon = useGameStore((state) =>
+    state.inventory.some((i) => i.slot === 'weapon' && (!state.equippedWeapon || i.atk > state.equippedWeapon.atk))
+  );
 
-  // Verificações de Badges (Red Dots)
-  const hasStatPoints = stats.statPoints > 0;
-  const hasBetterWeapon = inventory.some((i) => i.slot === 'weapon' && (!equippedWeapon || i.atk > equippedWeapon.atk));
-
-  // Gameloop continuous Ticker (60 FPS / Delta Time)
+  // Hybrid Game Loop: 60 FPS rAF when active, low-CPU interval when in background
   useEffect(() => {
     let lastTime = performance.now();
-    const interval = setInterval(() => {
-      const now = performance.now();
-      const deltaSec = (now - lastTime) / 1000;
-      lastTime = now;
-      tick(deltaSec);
-    }, 100);
+    let animFrameId: number | null = null;
+    let bgIntervalId: ReturnType<typeof setInterval> | null = null;
 
-    return () => clearInterval(interval);
+    const runTick = () => {
+      const now = performance.now();
+      const rawDelta = (now - lastTime) / 1000;
+      lastTime = now;
+      // Cap delta time to prevent massive jumps after browser hiccups
+      const deltaSec = Math.min(rawDelta, 0.25);
+      if (deltaSec > 0) {
+        tick(deltaSec);
+      }
+    };
+
+    const startVisibleLoop = () => {
+      if (bgIntervalId) {
+        clearInterval(bgIntervalId);
+        bgIntervalId = null;
+      }
+      lastTime = performance.now();
+      const loop = () => {
+        runTick();
+        animFrameId = requestAnimationFrame(loop);
+      };
+      animFrameId = requestAnimationFrame(loop);
+    };
+
+    const startBackgroundLoop = () => {
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+      lastTime = performance.now();
+      // 4 ticks/sec while in background (low CPU, continuous idle farming)
+      bgIntervalId = setInterval(runTick, 250);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        startBackgroundLoop();
+      } else {
+        startVisibleLoop();
+      }
+    };
+
+    if (document.hidden) {
+      startBackgroundLoop();
+    } else {
+      startVisibleLoop();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (bgIntervalId) clearInterval(bgIntervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [tick]);
 
   return (

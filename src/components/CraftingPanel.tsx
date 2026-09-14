@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { CRAFTING_RECIPES_CATALOG, RARITY_COLORS } from '../data/gameCatalog';
 import { GAME_THEME } from '../config/themeConfig';
 import type { Rarity } from '../types/game';
 import { Hammer, Flame } from 'lucide-react';
 
 export const CraftingPanel: React.FC = () => {
-  const { craftingMaterials, stats, craftRecipe } = useGameStore();
+  const { craftingMaterials, gold, craftRecipe } = useGameStore(
+    useShallow((state) => ({
+      craftingMaterials: state.craftingMaterials,
+      gold: state.stats.gold,
+      craftRecipe: state.craftRecipe,
+    }))
+  );
   const [selectedRarityFilter, setSelectedRarityFilter] = useState<Rarity | 'all'>('all');
 
   const filteredRecipes = CRAFTING_RECIPES_CATALOG.filter(
@@ -86,7 +93,7 @@ export const CraftingPanel: React.FC = () => {
               craftingMaterials.material1 >= recipe.requiredMaterial1 &&
               craftingMaterials.material2 >= recipe.requiredMaterial2 &&
               craftingMaterials.material3 >= recipe.requiredMaterial3 &&
-              stats.gold >= recipe.goldCost;
+              gold >= recipe.goldCost;
 
             return (
               <div
@@ -138,7 +145,7 @@ export const CraftingPanel: React.FC = () => {
 
                     <span
                       className={`px-2 py-0.5 rounded border ${
-                        stats.gold >= recipe.goldCost
+                        gold >= recipe.goldCost
                           ? 'bg-amber-950/60 border-amber-500/50 text-amber-300'
                           : 'bg-red-950/60 border-red-500/50 text-red-400'
                       }`}

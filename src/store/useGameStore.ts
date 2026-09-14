@@ -4,6 +4,45 @@ import type {
 } from '../types/game';
 import { BIOMES_CATALOG, WEAPONS_CATALOG, SKILLS_CATALOG, RARITY_MULTIPLIERS, CRAFTING_RECIPES_CATALOG } from '../data/gameCatalog';
 
+// ---------- UNIQUE ID GENERATOR (replaces Date.now() collisions) ----------
+let _nextId = 0;
+const uid = (prefix: string) => `${prefix}_${++_nextId}`;
+
+// ---------- DRY HELPERS ----------
+
+/** Roll a rarity from weighted probabilities */
+const rollRarity = (weights: number[]): Rarity => {
+  const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
+  const rand = Math.random();
+  let cumulative = 0;
+  for (let i = 0; i < rarities.length; i++) {
+    cumulative += weights[i];
+    if (rand <= cumulative) return rarities[i];
+  }
+  return 'normal';
+};
+
+/** Get salvage material values for a given rarity */
+const getSalvageValue = (rarity: Rarity): { mat1: number; mat2: number; mat3: number } => {
+  switch (rarity) {
+    case 'rare':      return { mat1: 5, mat2: 3, mat3: 0 };
+    case 'epic':      return { mat1: 12, mat2: 6, mat3: 1 };
+    case 'legendary':
+    case 'transcendent': return { mat1: 30, mat2: 15, mat3: 3 };
+    default:          return { mat1: 2, mat2: 1, mat3: 0 }; // normal
+  }
+};
+
+// ---------- INTERFACES ----------
+
+interface CalculatedStats {
+  atk: number;
+  def: number;
+  hp: number;
+  spd: number;
+  critChance: number;
+}
+
 interface GameState {
   // Stats & Progress
   stats: CharacterStats;
@@ -11,7 +50,7 @@ interface GameState {
   difficulty: Difficulty;
   biomeStage: number; // 1 to 10 (10 is Boss)
   isFightingBoss: boolean;
-  autoAdvance: boolean; // Controls whether to advance to next stage or hold/farm
+  autoAdvance: boolean;
   unlockedBiomes: string[];
   unlockedDifficulties: Difficulty[];
   
@@ -20,9 +59,18 @@ interface GameState {
   playerCurrentHp: number;
   playerMaxHp: number;
   
+  // Cached computed stats (invalidated on equip/stat/buff changes)
+  _cachedStats: CalculatedStats | null;
+  // Cached resolved skill objects
+  _cachedSkill1: typeof SKILLS_CATALOG[0] | null;
+  _cachedSkill2: typeof SKILLS_CATALOG[0] | null;
+  // Accumulators for per-attack mechanics
+  _hitAccumulator: number;
+  _healAccumulator: number;
+  
   // Cooldowns & Active Buffs
-  skill1Cooldown: number; // sec left
-  skill2Cooldown: number; // sec left
+  skill1Cooldown: number;
+  skill2Cooldown: number;
   activeBuff: {
     atkBuffPct: number;
     spdBuffPct: number;
@@ -45,7 +93,7 @@ interface GameState {
     material2: number;
     material3: number;
   };
-  ownedSkills: Record<string, OwnedSkill>; // skillId -> OwnedSkill
+  ownedSkills: Record<string, OwnedSkill>;
   
   // Logs
   logs: BattleLogMessage[];
@@ -78,9 +126,9 @@ const INITIAL_STATS: CharacterStats = {
   baseAtk: 15,
   baseDef: 5,
   baseHp: 100,
-  baseSpd: 1.0, // 1 ataque por segundo
+  baseSpd: 1.0,
   gold: 200,
-  gems: 100, // Moeda Premium inicial
+  gems: 100,
   prestigeRank: 0,
 };
 
@@ -98,21 +146,20 @@ const INITIAL_WEAPON: Equipment = {
   sellPrice: 50,
 };
 
-// Helper: Calculate total stats derived from base + points + equipment + buffs
-const getCalculatedStats = (state: {
+// Helper: Calculate total stats derived from base + equipment + buffs
+const computeStats = (state: {
   stats: CharacterStats;
   equippedWeapon: Equipment | null;
   equippedShihakusho: Equipment | null;
   equippedAccessory: Equipment | null;
   activeBuff: GameState['activeBuff'];
-}) => {
+}): CalculatedStats => {
   let atk = state.stats.baseAtk;
   let def = state.stats.baseDef;
   let hp = state.stats.baseHp;
   let spd = state.stats.baseSpd;
-  let critChance = 0.05; // 5% base
+  let critChance = 0.05;
 
-  // Equipments
   if (state.equippedWeapon) {
     atk += state.equippedWeapon.atk;
     hp += state.equippedWeapon.hp;
@@ -132,26 +179,42 @@ const getCalculatedStats = (state: {
     critChance += state.equippedAccessory.critChance;
   }
 
-  // Active Buffs
   if (state.activeBuff) {
     if (state.activeBuff.atkBuffPct) atk *= (1 + state.activeBuff.atkBuffPct);
     if (state.activeBuff.spdBuffPct) spd *= (1 + state.activeBuff.spdBuffPct);
     if (state.activeBuff.defBuffPct) def *= (1 + state.activeBuff.defBuffPct);
   }
 
-  return { atk: Math.round(atk), def: Math.round(def), hp: Math.round(hp), spd: parseFloat(spd.toFixed(2)), critChance };
+  return {
+    atk: Math.round(atk),
+    def: Math.round(def),
+    hp: Math.round(hp),
+    spd: parseFloat(spd.toFixed(2)),
+    critChance,
+  };
 };
 
-// Helper: Spawn Horda de Inimigos (1 a 3 mobs simultâneos conforme o estágio)
+// Difficulty multipliers
+const DIFF_MULTIPLIERS: Record<Difficulty, number> = {
+  normal: 1.0,
+  hard: 8.5,
+  nightmare: 65.0,
+  hell: 500.0,
+};
+
+// SPD hard cap: max 5 hits per second regardless of stat
+const MAX_HITS_PER_SEC = 5.0;
+
+// Helper: Spawn Horda de Inimigos
 const spawnEnemiesForBiome = (biomeId: string, diff: Difficulty, stage: number, isBoss: boolean): Enemy[] => {
   const biome = BIOMES_CATALOG.find((b) => b.id === biomeId) || BIOMES_CATALOG[0];
-  const diffMultiplier = diff === 'normal' ? 1.0 : diff === 'hard' ? 8.5 : diff === 'nightmare' ? 65.0 : 500.0;
+  const diffMultiplier = DIFF_MULTIPLIERS[diff];
   
   if (isBoss || stage === 10) {
     const b = biome.boss;
     const maxHp = Math.round(b.hpBase * diffMultiplier);
     return [{
-      id: `boss_${Date.now()}`,
+      id: uid('boss'),
       name: `[BOSS] ${b.name}`,
       maxHp,
       currentHp: maxHp,
@@ -165,7 +228,6 @@ const spawnEnemiesForBiome = (biomeId: string, diff: Difficulty, stage: number, 
     }];
   }
 
-  // Gera de 1 a 3 mobs simultâneos dependendo da fase do estágio (Fases 1-3 = 1 mob, Fases 4-7 = 2 mobs, Fases 8-9 = 3 mobs)
   const enemyCount = stage >= 8 ? 3 : stage >= 4 ? 2 : 1;
   const enemies: Enemy[] = [];
 
@@ -173,7 +235,7 @@ const spawnEnemiesForBiome = (biomeId: string, diff: Difficulty, stage: number, 
     const enemyTemplate = biome.enemies[(stage - 1 + i) % biome.enemies.length];
     const maxHp = Math.round(enemyTemplate.hpBase * diffMultiplier);
     enemies.push({
-      id: `enemy_${Date.now()}_${i}`,
+      id: uid(`enemy_${i}`),
       name: enemyTemplate.name,
       maxHp,
       currentHp: maxHp,
@@ -190,6 +252,51 @@ const spawnEnemiesForBiome = (biomeId: string, diff: Difficulty, stage: number, 
   return enemies;
 };
 
+/** Helper: Execute a skill against enemies, returns log message and updated cooldown */
+const executeSkill = (
+  skill: typeof SKILLS_CATALOG[0],
+  calc: CalculatedStats,
+  enemies: Enemy[],
+  slotLabel: string,
+): { log: BattleLogMessage; healAmount: number } => {
+  const skillDamage = Math.round(calc.atk * skill.damageMultiplier);
+  
+  // Filter only alive enemies for targeting
+  const aliveTargets = enemies.filter(e => e.currentHp > 0);
+  const targetsCount = skill.isAoE ? Math.min(aliveTargets.length, skill.maxTargets || 3) : Math.min(1, aliveTargets.length);
+  
+  for (let i = 0; i < targetsCount; i++) {
+    if (aliveTargets[i]) {
+      aliveTargets[i].currentHp = Math.max(0, aliveTargets[i].currentHp - skillDamage);
+    }
+  }
+
+  // Heal support (Minazuki etc)
+  let healAmount = 0;
+  if (skill.healPct && skill.healPct > 0) {
+    healAmount = Math.round(calc.hp * skill.healPct);
+  }
+
+  const emoji = slotLabel === 'BANKAI' ? '🔥' : '💥';
+  const aoeLabel = skill.isAoE ? 'ÁREA' : 'Single';
+  
+  return {
+    log: {
+      id: uid(`log_${slotLabel.toLowerCase()}`),
+      text: `${emoji} [${slotLabel} ${aoeLabel}] ${skill.name} causou ${skillDamage} de dano em ${targetsCount} inimigo(s)!${healAmount > 0 ? ` Curou ${healAmount} HP!` : ''}`,
+      type: 'skill',
+      timestamp: new Date().toLocaleTimeString(),
+    },
+    healAmount,
+  };
+};
+
+// Material drop rates by enemy type
+const MATERIAL_DROP_RATES = {
+  normal: { mat1Chance: 0.40, mat1Qty: 1, mat2Chance: 0.15, mat2Qty: 1, mat3Chance: 0, mat3Qty: 0 },
+  boss: { mat1Chance: 1.0, mat1Qty: 5, mat2Chance: 1.0, mat2Qty: 3, mat3Chance: 1.0, mat3Qty: 1 },
+};
+
 const SAVED_STATE_KEY = 'soul_ascension_save_v1';
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -198,13 +305,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   difficulty: 'normal',
   biomeStage: 1,
   isFightingBoss: false,
-  autoAdvance: true, // Por padrão avança automaticamente
+  autoAdvance: true,
   unlockedBiomes: ['karakura'],
   unlockedDifficulties: ['normal'],
 
   currentEnemies: spawnEnemiesForBiome('karakura', 'normal', 1, false),
   playerCurrentHp: 100,
   playerMaxHp: 100,
+
+  // Cached values
+  _cachedStats: null,
+  _cachedSkill1: SKILLS_CATALOG.find(s => s.id === 'getsuga_tensho') || null,
+  _cachedSkill2: SKILLS_CATALOG.find(s => s.id === 'bankai_tensa') || null,
+  _hitAccumulator: 0,
+  _healAccumulator: 0,
 
   skill1Cooldown: 0,
   skill2Cooldown: 0,
@@ -229,7 +343,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   logs: [
     {
-      id: '1',
+      id: 'log_welcome',
       text: '⚔️ Bem-vindo ao Soul Ascension! Seu combate autônomo iniciou na Cidade de Karakura.',
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
@@ -241,7 +355,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.currentEnemies.length === 0) return;
 
-    const calc = getCalculatedStats(state);
+    // Use cached stats or compute fresh
+    const calc = state._cachedStats || computeStats(state);
+    if (!state._cachedStats) {
+      // Cache it for subsequent ticks (no set() call here to avoid re-render, we'll include it in the final set)
+    }
+
     let newPlayerHp = state.playerCurrentHp;
     let newSkill1Cd = Math.max(0, state.skill1Cooldown - deltaTimeSec);
     let newSkill2Cd = Math.max(0, state.skill2Cooldown - deltaTimeSec);
@@ -257,111 +376,106 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
+    // Mutate enemies in-place via shallow copies (one copy, not per-frame deep clone)
     const enemies = state.currentEnemies.map((e) => ({ ...e }));
-    let logsToAdd: BattleLogMessage[] = [];
+    const logsToAdd: BattleLogMessage[] = [];
 
-    // O alvo primário é o primeiro mob vivo da fila
-    const primaryEnemy = enemies[0];
-    if (!primaryEnemy) return;
+    // Filter to alive enemies first
+    const aliveEnemiesBefore = enemies.filter(e => e.currentHp > 0);
+    if (aliveEnemiesBefore.length === 0) return;
 
-    // --- PLAYER AUTO-ATTACK (Alvo Primário) ---
-    const attackIntervalSec = 1.0 / calc.spd;
-    const hitsThisTick = deltaTimeSec / attackIntervalSec;
+    const primaryEnemy = aliveEnemiesBefore[0];
 
-    const isCrit = Math.random() < calc.critChance;
-    const rawDamage = Math.max(1, calc.atk - primaryEnemy.def * 0.5);
-    const finalHitDamage = isCrit ? Math.round(rawDamage * 1.8) : Math.round(rawDamage);
-    const autoAttackDmg = Math.round(finalHitDamage * hitsThisTick);
-    
-    primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - autoAttackDmg);
+    // --- PLAYER AUTO-ATTACK (Per-Attack Crit, not Per-Frame) ---
+    // SPD hard cap: max MAX_HITS_PER_SEC hits/sec
+    const effectiveSpd = Math.min(calc.spd, MAX_HITS_PER_SEC);
+    const hitsThisTick = deltaTimeSec * effectiveSpd;
+    let hitAccum = state._hitAccumulator + hitsThisTick;
+    let healAccum = state._healAccumulator;
 
-    // Apply Lifesteal (50% eficiência contra mobs normais, 100% contra Boss)
-    if (newBuff && newBuff.lifestealPct > 0) {
-      const isBossFight = primaryEnemy.isBoss;
-      const lifestealMult = isBossFight ? 1.0 : 0.5;
-      const healAmount = Math.round(autoAttackDmg * newBuff.lifestealPct * lifestealMult);
-      newPlayerHp = Math.min(calc.hp, newPlayerHp + healAmount);
+    // Process complete hits (crit rolls per whole hit)
+    let totalAutoAttackDmg = 0;
+    while (hitAccum >= 1.0) {
+      hitAccum -= 1.0;
+      // Multiplicative damage formula: ATK * (100 / (100 + DEF)) — DEF always relevant
+      const rawDamage = Math.max(1, Math.round(calc.atk * (100 / (100 + primaryEnemy.def))));
+      const isCrit = Math.random() < calc.critChance;
+      const hitDamage = isCrit ? Math.round(rawDamage * 1.8) : rawDamage;
+      totalAutoAttackDmg += hitDamage;
     }
 
-    // --- SKILL EXECUTION AUTOMATION (Suporte a AoE) ---
-    // Skill 1 Check
-    if (newSkill1Cd <= 0 && state.equippedSlot1SkillId) {
-      const skill = SKILLS_CATALOG.find((s) => s.id === state.equippedSlot1SkillId);
-      if (skill) {
-        const skillDamage = Math.round(calc.atk * skill.damageMultiplier);
-        newSkill1Cd = skill.cooldownSec;
+    // Apply remaining fractional damage (no crit for partial hits)
+    if (hitAccum > 0 && totalAutoAttackDmg === 0) {
+      const rawDamage = Math.max(1, Math.round(calc.atk * (100 / (100 + primaryEnemy.def))));
+      totalAutoAttackDmg += Math.round(rawDamage * hitAccum);
+    }
 
-        // Se for Habilidade em Área (AoE), atinge múltiplos mobs da horda!
-        const targetsCount = skill.isAoE ? Math.min(enemies.length, skill.maxTargets || 3) : 1;
-        for (let i = 0; i < targetsCount; i++) {
-          if (enemies[i]) {
-            enemies[i].currentHp = Math.max(0, enemies[i].currentHp - skillDamage);
-          }
-        }
+    primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - totalAutoAttackDmg);
 
-        logsToAdd.push({
-          id: `log_${Date.now()}_s1`,
-          text: `💥 [Habilidade ${skill.isAoE ? 'ÁREA' : 'Single'}] ${skill.name} causou ${skillDamage} de dano em ${targetsCount} inimigo(s)!`,
-          type: 'skill',
-          timestamp: new Date().toLocaleTimeString(),
-        });
+    // Apply Lifesteal with float accumulator (50% vs mobs, 100% vs boss)
+    if (newBuff && newBuff.lifestealPct > 0 && totalAutoAttackDmg > 0) {
+      const lifestealMult = primaryEnemy.isBoss ? 1.0 : 0.5;
+      healAccum += totalAutoAttackDmg * newBuff.lifestealPct * lifestealMult;
+      if (healAccum >= 1.0) {
+        const healApply = Math.floor(healAccum);
+        healAccum -= healApply;
+        newPlayerHp = Math.min(calc.hp, newPlayerHp + healApply);
       }
     }
 
-    // Skill 2 (Bankai) Check
-    if (newSkill2Cd <= 0 && state.equippedSlot2SkillId) {
-      const bankai = SKILLS_CATALOG.find((s) => s.id === state.equippedSlot2SkillId);
-      if (bankai) {
-        const bankaiDamage = Math.round(calc.atk * bankai.damageMultiplier);
-        newSkill2Cd = bankai.cooldownSec;
-
-        // Se for Bankai em Área (AoE), dizima múltiplos inimigos!
-        const targetsCount = bankai.isAoE ? Math.min(enemies.length, bankai.maxTargets || 5) : 1;
-        for (let i = 0; i < targetsCount; i++) {
-          if (enemies[i]) {
-            enemies[i].currentHp = Math.max(0, enemies[i].currentHp - bankaiDamage);
-          }
-        }
-
-        if (bankai.durationSec) {
-          newBuff = {
-            atkBuffPct: bankai.atkBuffPct || 0,
-            spdBuffPct: bankai.spdBuffPct || 0,
-            defBuffPct: bankai.defBuffPct || 0,
-            lifestealPct: bankai.lifestealPct || 0,
-            durationLeft: bankai.durationSec,
-            name: bankai.name,
-          };
-        }
-
-        logsToAdd.push({
-          id: `log_${Date.now()}_s2`,
-          text: `🔥 [BANKAI ${bankai.isAoE ? 'ÁREA' : 'Single'}] ${bankai.name} ativado! Dano: ${bankaiDamage} em ${targetsCount} inimigo(s)!`,
-          type: 'skill',
-          timestamp: new Date().toLocaleTimeString(),
-        });
+    // --- SKILL EXECUTION (targets alive enemies only, dead filtered first) ---
+    // Skill 1
+    if (newSkill1Cd <= 0 && state._cachedSkill1) {
+      const skill = state._cachedSkill1;
+      const result = executeSkill(skill, calc, enemies, 'Habilidade');
+      newSkill1Cd = skill.cooldownSec;
+      logsToAdd.push(result.log);
+      if (result.healAmount > 0) {
+        newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
       }
     }
 
-    // --- ATAQUES SIMULTÂNEOS DOS INIMIGOS DA HORDA ---
+    // Skill 2 (Bankai)
+    if (newSkill2Cd <= 0 && state._cachedSkill2) {
+      const bankai = state._cachedSkill2;
+      const result = executeSkill(bankai, calc, enemies, 'BANKAI');
+      newSkill2Cd = bankai.cooldownSec;
+      logsToAdd.push(result.log);
+      if (result.healAmount > 0) {
+        newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
+      }
+
+      if (bankai.durationSec) {
+        newBuff = {
+          atkBuffPct: bankai.atkBuffPct || 0,
+          spdBuffPct: bankai.spdBuffPct || 0,
+          defBuffPct: bankai.defBuffPct || 0,
+          lifestealPct: bankai.lifestealPct || 0,
+          durationLeft: bankai.durationSec,
+          name: bankai.name,
+        };
+      }
+    }
+
+    // --- ENEMY ATTACKS (all alive enemies attack, boss burst smoothed by deltaTime) ---
     enemies.forEach((enemy) => {
       if (enemy.currentHp > 0) {
-        // Boss Habilidade Especial: 15% de Chance por segundo de desferir Golpe Perfurante de Reiatsu!
         const isBossSkillHit = enemy.isBoss && Math.random() < (0.15 * deltaTimeSec);
         let enemyDmgPerTick = 0;
 
         if (isBossSkillHit) {
-          // Golpe Perfurante ignora 60% da Defesa do jogador
+          // Boss burst SMOOTHED by deltaTime (was instant before)
           const bossSkillDmg = Math.max(10, Math.round(enemy.atk * 1.6 - calc.def * 0.16));
-          enemyDmgPerTick = bossSkillDmg;
+          enemyDmgPerTick = Math.round(bossSkillDmg * deltaTimeSec);
           logsToAdd.push({
-            id: `log_boss_skill_${Date.now()}`,
-            text: `⚠️ [BOSS HABILDADE] ${enemy.name} desferiu um Golpe Perfurante de Reiatsu! causou ${bossSkillDmg} de dano!`,
+            id: uid('log_boss_skill'),
+            text: `⚠️ [BOSS HABILIDADE] ${enemy.name} desferiu um Golpe Perfurante de Reiatsu! causou ${enemyDmgPerTick} de dano!`,
             type: 'system',
             timestamp: new Date().toLocaleTimeString(),
           });
         } else {
-          const enemyRawDmg = Math.max(1, enemy.atk - calc.def * 0.4);
+          // Regular damage with multiplicative formula
+          const enemyRawDmg = Math.max(1, Math.round(enemy.atk * (100 / (100 + calc.def))));
           enemyDmgPerTick = Math.round((enemyRawDmg / (enemy.attackSpeedSec || 1.2)) * deltaTimeSec);
         }
 
@@ -369,24 +483,60 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     });
 
-    // Filtra mobs sobreviventes
+    // Filter surviving enemies
     const aliveEnemies = enemies.filter((e) => e.currentHp > 0);
     const defeatedEnemies = enemies.filter((e) => e.currentHp <= 0);
 
-    // --- HORDA ELIMINADA / RESPAWN / AVANÇO ---
+    // --- HORDE ELIMINATED / RESPAWN / ADVANCE ---
     if (aliveEnemies.length === 0) {
-      // Recompensas acumuladas de todos os mobs mortos nesta rodada
       let totalExpGained = 0;
       let totalGoldGained = 0;
       let wasBossDefeated = false;
 
+      // Material drops from defeated enemies
+      let matDrops = { mat1: 0, mat2: 0, mat3: 0 };
+      const diffMult = DIFF_MULTIPLIERS[state.difficulty];
+      // Material scaling: sqrt of difficulty multiplier (prevents trivial gold but meaningful progression)
+      const matDiffScale = Math.max(1, Math.round(Math.sqrt(diffMult)));
+
       defeatedEnemies.forEach((e) => {
         totalExpGained += e.expReward;
         totalGoldGained += e.goldReward;
-        if (e.isBoss) wasBossDefeated = true;
+        if (e.isBoss) {
+          wasBossDefeated = true;
+          // Boss: guaranteed material drops
+          matDrops.mat1 += MATERIAL_DROP_RATES.boss.mat1Qty * matDiffScale;
+          matDrops.mat2 += MATERIAL_DROP_RATES.boss.mat2Qty * matDiffScale;
+          matDrops.mat3 += MATERIAL_DROP_RATES.boss.mat3Qty * matDiffScale;
+        } else {
+          // Normal enemy: chance-based drops
+          if (Math.random() < MATERIAL_DROP_RATES.normal.mat1Chance) {
+            matDrops.mat1 += MATERIAL_DROP_RATES.normal.mat1Qty * matDiffScale;
+          }
+          if (Math.random() < MATERIAL_DROP_RATES.normal.mat2Chance) {
+            matDrops.mat2 += MATERIAL_DROP_RATES.normal.mat2Qty * matDiffScale;
+          }
+        }
       });
 
       let newStats = { ...state.stats, exp: state.stats.exp + totalExpGained, gold: state.stats.gold + totalGoldGained };
+
+      // Update crafting materials
+      const newMaterials = {
+        material1: state.craftingMaterials.material1 + matDrops.mat1,
+        material2: state.craftingMaterials.material2 + matDrops.mat2,
+        material3: state.craftingMaterials.material3 + matDrops.mat3,
+      };
+
+      // Log material drops
+      if (matDrops.mat1 > 0 || matDrops.mat2 > 0 || matDrops.mat3 > 0) {
+        logsToAdd.push({
+          id: uid('log_mat_drop'),
+          text: `⚙️ MATERIAIS: +${matDrops.mat1} Reishi, +${matDrops.mat2} Minério${matDrops.mat3 > 0 ? `, +${matDrops.mat3} Essência` : ''}`,
+          type: 'loot',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
 
       // Check Level Up
       if (newStats.exp >= newStats.nextLevelExp) {
@@ -396,36 +546,26 @@ export const useGameStore = create<GameState>((set, get) => ({
         newStats.nextLevelExp = Math.round(newStats.nextLevelExp * 1.75);
 
         logsToAdd.push({
-          id: `log_lvl_${Date.now()}`,
+          id: uid('log_lvl'),
           text: `🎉 LEVEL UP! Você alcançou o Nível ${newStats.level}! (+3 Pontos de Atributo)`,
           type: 'system',
           timestamp: new Date().toLocaleTimeString(),
         });
       }
 
-      // Generate Loot (15% Chance por mob normal da horda, 100% no Boss)
+      // Generate Loot (15% per normal horde, 100% on Boss)
       let newInventory = [...state.inventory];
       if (wasBossDefeated || Math.random() < 0.15) {
         const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
-        const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
-        const rarityWeights = wasBossDefeated 
-          ? [0.55, 0.30, 0.115, 0.032, 0.003]   
-          : [0.80, 0.16, 0.035, 0.0048, 0.0002]; 
-        
-        const rand = Math.random();
-        let cumulative = 0;
-        let selectedRarity: Rarity = 'normal';
-        for (let i = 0; i < rarities.length; i++) {
-          cumulative += rarityWeights[i];
-          if (rand <= cumulative) {
-            selectedRarity = rarities[i];
-            break;
-          }
-        }
+        const selectedRarity = rollRarity(
+          wasBossDefeated 
+            ? [0.55, 0.30, 0.115, 0.032, 0.003]   
+            : [0.80, 0.16, 0.035, 0.0048, 0.0002]
+        );
 
         const mult = RARITY_MULTIPLIERS[selectedRarity];
         const newEquip: Equipment = {
-          instanceId: `equip_${Date.now()}_${Math.random()}`,
+          instanceId: uid('equip'),
           weaponId: weaponTemplate.id,
           name: `${weaponTemplate.name} (${selectedRarity.toUpperCase()})`,
           rarity: selectedRarity,
@@ -440,7 +580,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         newInventory.push(newEquip);
         logsToAdd.push({
-          id: `log_loot_${Date.now()}`,
+          id: uid('log_loot'),
           text: `💎 LOOT DROP! Você encontrou: ${newEquip.name}!`,
           type: 'loot',
           timestamp: new Date().toLocaleTimeString(),
@@ -456,7 +596,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       if (wasBossDefeated || state.biomeStage === 10) {
         logsToAdd.push({
-          id: `log_boss_win_${Date.now()}`,
+          id: uid('log_boss_win'),
           text: `🏆 BOSS DERROTADO! Você concluiu as 10 Fases de ${state.currentBiomeId.toUpperCase()}!`,
           type: 'victory',
           timestamp: new Date().toLocaleTimeString(),
@@ -471,7 +611,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             newUnlockedBiomes.push(nextBiomeId);
           }
           logsToAdd.push({
-            id: `log_unlock_biome_${Date.now()}`,
+            id: uid('log_unlock_biome'),
             text: `🔓 NOVO BIOMA DESBLOQUEADO: Avançando para ${nextBiomeObj.name}!`,
             type: 'system',
             timestamp: new Date().toLocaleTimeString(),
@@ -487,7 +627,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             if (!newUnlockedDiffs.includes(nextDiff)) {
               newUnlockedDiffs.push(nextDiff);
               logsToAdd.push({
-                id: `log_unlock_diff_${Date.now()}`,
+                id: uid('log_unlock_diff'),
                 text: `🔥 DIFICULDADE DESBLOQUEADA! A dificuldade ${nextDiff.toUpperCase()} agora está acessível!`,
                 type: 'victory',
                 timestamp: new Date().toLocaleTimeString(),
@@ -508,6 +648,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         stats: newStats,
         inventory: newInventory,
+        craftingMaterials: newMaterials,
         currentBiomeId: nextBiomeId,
         biomeStage: nextStage,
         isFightingBoss: nextIsBoss,
@@ -519,6 +660,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         skill1Cooldown: newSkill1Cd,
         skill2Cooldown: newSkill2Cd,
         activeBuff: newBuff,
+        _cachedStats: computeStats({ ...state, activeBuff: newBuff }),
+        _hitAccumulator: hitAccum,
+        _healAccumulator: 0,
         logs: [...logsToAdd, ...state.logs].slice(0, 30),
       });
 
@@ -529,7 +673,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (newPlayerHp <= 0) {
       const fallbackStage = state.biomeStage === 10 ? 9 : Math.max(1, state.biomeStage - 1);
       logsToAdd.push({
-        id: `log_defeat_${Date.now()}`,
+        id: uid('log_defeat'),
         text: `💀 Seu Shinigami recuou para recuperar o HP. Voltando para a Fase ${fallbackStage}...`,
         type: 'system',
         timestamp: new Date().toLocaleTimeString(),
@@ -542,12 +686,16 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentEnemies: nextEnemies,
         playerCurrentHp: calc.hp,
         playerMaxHp: calc.hp,
+        _hitAccumulator: 0,
+        _healAccumulator: 0,
         logs: [...logsToAdd, ...state.logs].slice(0, 30),
       });
 
       return;
     }
 
+    // --- NORMAL TICK UPDATE (only set if something changed) ---
+    const hasNewLogs = logsToAdd.length > 0;
     set({
       currentEnemies: aliveEnemies,
       playerCurrentHp: newPlayerHp,
@@ -555,7 +703,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       skill1Cooldown: newSkill1Cd,
       skill2Cooldown: newSkill2Cd,
       activeBuff: newBuff,
-      logs: logsToAdd.length > 0 ? [...logsToAdd, ...state.logs].slice(0, 30) : state.logs,
+      _cachedStats: calc,
+      _hitAccumulator: hitAccum,
+      _healAccumulator: healAccum,
+      logs: hasNewLogs ? [...logsToAdd, ...state.logs].slice(0, 30) : state.logs,
     });
   },
 
@@ -575,10 +726,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (stat === 'def') newBaseDef += 2 * pointsToUse;
     if (stat === 'hp') newBaseHp += 25 * pointsToUse;
     if (stat === 'spd') {
-      // Soft Cap Scaling:
-      // spd < 2.5: +0.05 por ponto
-      // 2.5 <= spd < 4.0: +0.025 por ponto
-      // spd >= 4.0: +0.01 por ponto
+      // Soft Cap Scaling for point allocation
       for (let i = 0; i < pointsToUse; i++) {
         if (newBaseSpd < 2.5) {
           newBaseSpd += 0.05;
@@ -599,6 +747,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         baseHp: newBaseHp,
         baseSpd: parseFloat(newBaseSpd.toFixed(2)),
       },
+      _cachedStats: null, // Invalidate cache
     });
   },
 
@@ -611,6 +760,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         equippedWeapon: item,
         inventory: remainingInventory,
+        _cachedStats: null, // Invalidate cache
       });
     }
   },
@@ -619,7 +769,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { equippedWeapon, inventory } = get();
     if (inventory.length === 0) return;
 
-    // Encontra a arma do inventário com maior dano de ATK
     const weaponsInInv = inventory.filter((i) => i.slot === 'weapon');
     if (weaponsInInv.length === 0) return;
 
@@ -634,6 +783,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         equippedWeapon: bestWeapon,
         inventory: remainingInv,
+        _cachedStats: null, // Invalidate cache
       });
     }
   },
@@ -644,6 +794,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         equippedWeapon: null,
         inventory: [...inventory, equippedWeapon],
+        _cachedStats: null, // Invalidate cache
       });
     }
   },
@@ -664,40 +815,22 @@ export const useGameStore = create<GameState>((set, get) => ({
     const item = inventory.find((i) => i.instanceId === instanceId);
     if (!item) return;
 
-    // Converte o item em materiais baseados na raridade
-    let mat1Gained = 2;
-    let mat2Gained = 1;
-    let mat3Gained = 0;
-
-    if (item.rarity === 'rare') {
-      mat1Gained = 5;
-      mat2Gained = 3;
-    } else if (item.rarity === 'epic') {
-      mat1Gained = 12;
-      mat2Gained = 6;
-      mat3Gained = 1;
-    } else if (item.rarity === 'legendary' || item.rarity === 'transcendent') {
-      mat1Gained = 30;
-      mat2Gained = 15;
-      mat3Gained = 3;
-    }
-
-    const updatedMaterials = {
-      material1: craftingMaterials.material1 + mat1Gained,
-      material2: craftingMaterials.material2 + mat2Gained,
-      material3: craftingMaterials.material3 + mat3Gained,
-    };
+    const { mat1, mat2, mat3 } = getSalvageValue(item.rarity);
 
     const newLog: BattleLogMessage = {
-      id: `log_salvage_${Date.now()}`,
-      text: `♻️ ITEM DESMONTADO: ${item.name} gerou +${mat1Gained} Mat.1, +${mat2Gained} Mat.2!`,
+      id: uid('log_salvage'),
+      text: `♻️ ITEM DESMONTADO: ${item.name} gerou +${mat1} Mat.1, +${mat2} Mat.2!`,
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     };
 
     set({
       inventory: inventory.filter((i) => i.instanceId !== instanceId),
-      craftingMaterials: updatedMaterials,
+      craftingMaterials: {
+        material1: craftingMaterials.material1 + mat1,
+        material2: craftingMaterials.material2 + mat2,
+        material3: craftingMaterials.material3 + mat3,
+      },
       logs: [newLog, ...logs.slice(0, 49)],
     });
   },
@@ -707,31 +840,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     const normalItems = inventory.filter((i) => i.rarity === 'normal');
     if (normalItems.length === 0) return;
 
-    let mat1Gained = 0;
-    let mat2Gained = 0;
-
-    normalItems.forEach(() => {
-      mat1Gained += 2;
-      mat2Gained += 1;
-    });
-
-    const remainingInventory = inventory.filter((i) => i.rarity !== 'normal');
-    const updatedMaterials = {
-      ...craftingMaterials,
-      material1: craftingMaterials.material1 + mat1Gained,
-      material2: craftingMaterials.material2 + mat2Gained,
-    };
+    const { mat1, mat2, mat3 } = getSalvageValue('normal');
+    const totalMat1 = mat1 * normalItems.length;
+    const totalMat2 = mat2 * normalItems.length;
+    const totalMat3 = mat3 * normalItems.length;
 
     const newLog: BattleLogMessage = {
-      id: `log_salvage_bulk_${Date.now()}`,
-      text: `♻️ RECICLAGEM EM LOTE: ${normalItems.length} itens comuns geraram +${mat1Gained} Mat.1, +${mat2Gained} Mat.2!`,
+      id: uid('log_salvage_bulk'),
+      text: `♻️ RECICLAGEM EM LOTE: ${normalItems.length} itens comuns geraram +${totalMat1} Mat.1, +${totalMat2} Mat.2!`,
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     };
 
     set({
-      inventory: remainingInventory,
-      craftingMaterials: updatedMaterials,
+      inventory: inventory.filter((i) => i.rarity !== 'normal'),
+      craftingMaterials: {
+        material1: craftingMaterials.material1 + totalMat1,
+        material2: craftingMaterials.material2 + totalMat2,
+        material3: craftingMaterials.material3 + totalMat3,
+      },
       logs: [newLog, ...logs.slice(0, 49)],
     });
   },
@@ -741,7 +868,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const recipe = CRAFTING_RECIPES_CATALOG.find((r) => r.id === recipeId);
     if (!recipe) return false;
 
-    // Verificar se possui recursos suficientes
     if (
       craftingMaterials.material1 < recipe.requiredMaterial1 ||
       craftingMaterials.material2 < recipe.requiredMaterial2 ||
@@ -755,7 +881,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const mult = RARITY_MULTIPLIERS[recipe.resultRarity as keyof typeof RARITY_MULTIPLIERS] || 1.0;
 
     const newEquip: Equipment = {
-      instanceId: `crafted_${Date.now()}`,
+      instanceId: uid('crafted'),
       weaponId: weaponTemplate.id,
       name: `${weaponTemplate.name} (${recipe.resultRarity.toUpperCase()})`,
       rarity: recipe.resultRarity,
@@ -768,21 +894,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       sellPrice: Math.round(150 * mult),
     };
 
-    const newMaterials = {
-      material1: craftingMaterials.material1 - recipe.requiredMaterial1,
-      material2: craftingMaterials.material2 - recipe.requiredMaterial2,
-      material3: craftingMaterials.material3 - recipe.requiredMaterial3,
-    };
-
     const newLog: BattleLogMessage = {
-      id: `log_craft_${Date.now()}`,
+      id: uid('log_craft'),
       text: `🔨 FORJA CONCLUÍDA! Você forjou com sucesso: ${newEquip.name}!`,
       type: 'loot',
       timestamp: new Date().toLocaleTimeString(),
     };
 
     set({
-      craftingMaterials: newMaterials,
+      craftingMaterials: {
+        material1: craftingMaterials.material1 - recipe.requiredMaterial1,
+        material2: craftingMaterials.material2 - recipe.requiredMaterial2,
+        material3: craftingMaterials.material3 - recipe.requiredMaterial3,
+      },
       stats: { ...stats, gold: stats.gold - recipe.goldCost },
       inventory: [...inventory, newEquip],
       logs: [newLog, ...logs.slice(0, 49)],
@@ -792,8 +916,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   equipSkill: (skillId: string, slot: 1 | 2) => {
-    if (slot === 1) set({ equippedSlot1SkillId: skillId });
-    if (slot === 2) set({ equippedSlot2SkillId: skillId });
+    const resolved = SKILLS_CATALOG.find(s => s.id === skillId) || null;
+    if (slot === 1) {
+      set({ equippedSlot1SkillId: skillId, _cachedSkill1: resolved });
+    }
+    if (slot === 2) {
+      set({ equippedSlot2SkillId: skillId, _cachedSkill2: resolved });
+    }
   },
 
   summonGacha: (costOrbs: number) => {
@@ -825,27 +954,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { skill: randomSkill.name, isDuplicate: isDup };
     } else {
       const weaponTemplate = WEAPONS_CATALOG[Math.floor(Math.random() * WEAPONS_CATALOG.length)];
-      
-      // Taxas de Gacha de alta raridade (Gacha realista):
-      // Normal: 52.8%, Raro: 35%, Épico: 10%, Lendário: 2.0%, Transcendente: 0.2%
-      const rarities: Rarity[] = ['normal', 'rare', 'epic', 'legendary', 'transcendent'];
-      const gachaWeights = [0.528, 0.35, 0.10, 0.02, 0.002];
-
-      const rand = Math.random();
-      let cumulative = 0;
-      let selectedRarity: Rarity = 'normal';
-      for (let i = 0; i < rarities.length; i++) {
-        cumulative += gachaWeights[i];
-        if (rand <= cumulative) {
-          selectedRarity = rarities[i];
-          break;
-        }
-      }
-
+      const selectedRarity = rollRarity([0.528, 0.35, 0.10, 0.02, 0.002]);
       const mult = RARITY_MULTIPLIERS[selectedRarity];
 
       const newEquip: Equipment = {
-        instanceId: `gacha_${Date.now()}`,
+        instanceId: uid('gacha'),
         weaponId: weaponTemplate.id,
         name: `${weaponTemplate.name} (${selectedRarity.toUpperCase()})`,
         rarity: selectedRarity,
@@ -876,6 +989,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       biomeStage: targetStage,
       isFightingBoss: isBoss,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, targetStage, isBoss),
+      _hitAccumulator: 0,
+      _healAccumulator: 0,
     });
   },
 
@@ -886,6 +1001,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       biomeStage: 1,
       isFightingBoss: false,
       currentEnemies: spawnEnemiesForBiome(biomeId, difficulty, 1, false),
+      _cachedStats: null,
+      _hitAccumulator: 0,
+      _healAccumulator: 0,
     });
   },
 
@@ -896,18 +1014,22 @@ export const useGameStore = create<GameState>((set, get) => ({
       biomeStage: 1,
       isFightingBoss: false,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, diff, 1, false),
+      _cachedStats: null,
+      _hitAccumulator: 0,
+      _healAccumulator: 0,
     });
   },
 
   challengeBoss: () => {
     const { currentBiomeId, difficulty, biomeStage } = get();
-    // O desafio do boss só está disponível se o jogador já estiver no Estágio 9 ou superior
     if (biomeStage < 9) return;
 
     set({
       biomeStage: 10,
       isFightingBoss: true,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, 10, true),
+      _hitAccumulator: 0,
+      _healAccumulator: 0,
     });
   },
 

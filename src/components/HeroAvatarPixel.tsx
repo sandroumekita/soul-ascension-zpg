@@ -5,7 +5,7 @@ interface HeroAvatarPixelProps {
   isAttacking?: boolean;
 }
 
-export const HeroAvatarPixel: React.FC<HeroAvatarPixelProps> = ({
+const HeroAvatarPixelInner: React.FC<HeroAvatarPixelProps> = ({
   size = 'md',
   isAttacking = false,
 }) => {
@@ -34,3 +34,5 @@ export const HeroAvatarPixel: React.FC<HeroAvatarPixelProps> = ({
     </div>
   );
 };
+
+export const HeroAvatarPixel = React.memo(HeroAvatarPixelInner);

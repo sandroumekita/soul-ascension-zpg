@@ -1,8 +1,16 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { BIOMES_CATALOG } from '../data/gameCatalog';
 import type { Difficulty } from '../types/game';
 import { MapPin, Lock, CheckCircle2, Trophy, ShieldAlert, Swords, Skull, Flame, Sparkles } from 'lucide-react';
+
+const difficultiesList: { id: Difficulty; name: string; mult: string; badge: string; color: string }[] = [
+  { id: 'normal', name: 'Normal', mult: '1.0x Stats Inimigos', badge: 'Iniciante (Dia 1-2)', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
+  { id: 'hard', name: 'Hard', mult: '8.5x Stats Inimigos', badge: 'Intermediário (Dia 3-5)', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
+  { id: 'nightmare', name: 'Nightmare', mult: '65.0x Stats Inimigos', badge: 'Veterano (Dia 6-9)', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
+  { id: 'hell', name: 'Hell (Transcendente)', mult: '500.0x Stats Inimigos', badge: 'Supremo (Dia 10-14)', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
+];
 
 export const WorldMapPanel: React.FC = () => {
   const {
@@ -13,15 +21,15 @@ export const WorldMapPanel: React.FC = () => {
     unlockedDifficulties,
     changeBiome,
     changeDifficulty,
-  } = useGameStore();
-
-
-  const difficultiesList: { id: Difficulty; name: string; mult: string; badge: string; color: string }[] = [
-    { id: 'normal', name: 'Normal', mult: '1.0x Stats Inimigos', badge: 'Iniciante (Dia 1-2)', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
-    { id: 'hard', name: 'Hard', mult: '8.5x Stats Inimigos', badge: 'Intermediário (Dia 3-5)', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
-    { id: 'nightmare', name: 'Nightmare', mult: '65.0x Stats Inimigos', badge: 'Veterano (Dia 6-9)', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
-    { id: 'hell', name: 'Hell (Transcendente)', mult: '500.0x Stats Inimigos', badge: 'Supremo (Dia 10-14)', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
-  ];
+  } = useGameStore(useShallow((state) => ({
+    currentBiomeId: state.currentBiomeId,
+    difficulty: state.difficulty,
+    biomeStage: state.biomeStage,
+    unlockedBiomes: state.unlockedBiomes,
+    unlockedDifficulties: state.unlockedDifficulties,
+    changeBiome: state.changeBiome,
+    changeDifficulty: state.changeDifficulty,
+  })));
 
   return (
     <div className="bg-slate-950/90 text-white p-5 rounded-2xl border border-slate-800 flex flex-col gap-6 shadow-2xl backdrop-blur-md">

@@ -28,7 +28,7 @@ export const GAME_THEME: ThemeConfig = {
   premiumCurrencyName: "Soul Orbs",
   premiumCurrencyIcon: "💎",
   material1Name: "Fragmentos de Reishi",
-  material1Icon: "💎",
+  material1Icon: "⚙️",
   material2Name: "Minério Espiritual",
   material2Icon: "🪨",
   material3Name: "Essência Espiritual",

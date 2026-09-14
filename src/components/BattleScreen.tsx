@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { BIOMES_CATALOG, SKILLS_CATALOG } from '../data/gameCatalog';
 import { GAME_THEME } from '../config/themeConfig';
 import { HeroAvatarPixel } from './HeroAvatarPixel';
@@ -7,45 +8,22 @@ import { PixelMobSprite } from './PixelMobSprite';
 import { Shield, Zap, Sparkles, Skull, Crown, Flame, Swords, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import type { FloatingDamage } from '../types/game';
 
-export const BattleScreen: React.FC = () => {
-  const {
-    stats,
-    currentEnemies,
-    playerCurrentHp,
-    playerMaxHp,
-    currentBiomeId,
-    difficulty,
-    biomeStage,
-    isFightingBoss,
-    autoAdvance,
-    logs,
-    challengeBoss,
-    selectStage,
-    toggleAutoAdvance,
-    skill1Cooldown,
-    skill2Cooldown,
-    equippedSlot1SkillId,
-    equippedSlot2SkillId,
-    equippedWeapon,
-  } = useGameStore();
+// Static array extracted outside component to avoid recreation every render
+const STAGE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+const SLOT_INDICES = [0, 1, 2] as const;
 
+// Floating damage overlay extracted to its own component to isolate re-renders
+const DamageOverlay: React.FC<{ enemyHp: number | undefined }> = React.memo(({ enemyHp }) => {
   const [floatingDamages, setFloatingDamages] = useState<FloatingDamage[]>([]);
-  const [isHitAnimating, setIsHitAnimating] = useState<boolean>(false);
-  const [showLogs, setShowLogs] = useState<boolean>(false); // Log opcional (padrão minimizado)
+  const baseAtk = useGameStore(state => state.stats.baseAtk);
+  const weaponAtk = useGameStore(state => state.equippedWeapon?.atk || 0);
 
-  const primaryEnemy = currentEnemies[0];
-
-  // Monitora alterações na vida do inimigo primário para gerar números de dano flutuantes e feedback de morte
   useEffect(() => {
-    if (!primaryEnemy) return;
-    
-    setIsHitAnimating(true);
-    const hitTimer = setTimeout(() => setIsHitAnimating(false), 180);
+    if (enemyHp === undefined) return;
 
-    // Dispara animação de número flutuante de dano quando o mob recebe um golpe
     const newDmg: FloatingDamage = {
       id: `dmg_${Date.now()}_${Math.random()}`,
-      damage: Math.round(stats.baseAtk * (equippedWeapon ? 1 + equippedWeapon.atk / 50 : 1)),
+      damage: Math.round(baseAtk * (1 + weaponAtk / 50)),
       isCrit: Math.random() < 0.25,
       isSkill: false,
       xOffset: (Math.random() - 0.5) * 40,
@@ -57,26 +35,109 @@ export const BattleScreen: React.FC = () => {
       setFloatingDamages((prev) => prev.filter((d) => d.id !== newDmg.id));
     }, 900);
 
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(hitTimer);
-    };
+    return () => clearTimeout(timer);
+  }, [enemyHp, baseAtk, weaponAtk]);
+
+  return (
+    <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-30">
+      {floatingDamages.map((dmg) => (
+        <div
+          key={dmg.id}
+          className={`absolute font-black text-sm pointer-events-none animate-float-damage ${
+            dmg.isCrit ? 'text-amber-400 text-base drop-shadow-[0_2px_4px_rgba(239,68,68,0.8)]' : 'text-red-400'
+          }`}
+          style={{ transform: `translateX(${dmg.xOffset}px)` }}
+        >
+          -{dmg.damage} {dmg.isCrit ? '🔥 CRÍTICO!' : ''}
+        </div>
+      ))}
+    </div>
+  );
+});
+
+export const BattleScreen: React.FC = () => {
+  // Atomic Zustand selectors — only re-render when these specific values change
+  const {
+    currentEnemies,
+    playerCurrentHp,
+    playerMaxHp,
+    currentBiomeId,
+    difficulty,
+    biomeStage,
+    isFightingBoss,
+    autoAdvance,
+    logs,
+    skill1Cooldown,
+    skill2Cooldown,
+    equippedSlot1SkillId,
+    equippedSlot2SkillId,
+    equippedWeapon,
+    baseAtk,
+    baseSpd,
+  } = useGameStore(useShallow((state) => ({
+    currentEnemies: state.currentEnemies,
+    playerCurrentHp: state.playerCurrentHp,
+    playerMaxHp: state.playerMaxHp,
+    currentBiomeId: state.currentBiomeId,
+    difficulty: state.difficulty,
+    biomeStage: state.biomeStage,
+    isFightingBoss: state.isFightingBoss,
+    autoAdvance: state.autoAdvance,
+    logs: state.logs,
+    skill1Cooldown: state.skill1Cooldown,
+    skill2Cooldown: state.skill2Cooldown,
+    equippedSlot1SkillId: state.equippedSlot1SkillId,
+    equippedSlot2SkillId: state.equippedSlot2SkillId,
+    equippedWeapon: state.equippedWeapon,
+    baseAtk: state.stats.baseAtk,
+    baseSpd: state.stats.baseSpd,
+  })));
+
+  // Actions (stable references, won't trigger re-renders)
+  const challengeBoss = useGameStore(state => state.challengeBoss);
+  const selectStage = useGameStore(state => state.selectStage);
+  const toggleAutoAdvance = useGameStore(state => state.toggleAutoAdvance);
+
+  const [isHitAnimating, setIsHitAnimating] = useState<boolean>(false);
+  const [showLogs, setShowLogs] = useState<boolean>(false);
+
+  const primaryEnemy = currentEnemies[0];
+
+  // Monitor primary enemy HP for hit animation
+  useEffect(() => {
+    if (!primaryEnemy) return;
+    
+    setIsHitAnimating(true);
+    const hitTimer = setTimeout(() => setIsHitAnimating(false), 180);
+
+    return () => clearTimeout(hitTimer);
   }, [primaryEnemy?.currentHp]);
 
-  const currentBiome = BIOMES_CATALOG.find((b) => b.id === currentBiomeId) || BIOMES_CATALOG[0];
+  // Memoized biome and skill lookups
+  const currentBiome = useMemo(
+    () => BIOMES_CATALOG.find((b) => b.id === currentBiomeId) || BIOMES_CATALOG[0],
+    [currentBiomeId]
+  );
 
-  // Formatação dos nomes das habilidades equipadas usando o catálogo
-  const skill1Obj = SKILLS_CATALOG.find((s) => s.id === equippedSlot1SkillId);
-  const skill2Obj = SKILLS_CATALOG.find((s) => s.id === equippedSlot2SkillId);
+  const skill1Obj = useMemo(
+    () => SKILLS_CATALOG.find((s) => s.id === equippedSlot1SkillId),
+    [equippedSlot1SkillId]
+  );
+
+  const skill2Obj = useMemo(
+    () => SKILLS_CATALOG.find((s) => s.id === equippedSlot2SkillId),
+    [equippedSlot2SkillId]
+  );
 
   const playerHpPct = Math.max(0, Math.min(100, (playerCurrentHp / playerMaxHp) * 100));
 
-  // Cálculo de DPS Estimado em Tempo Real
   const weaponAtk = equippedWeapon ? equippedWeapon.atk : 0;
-  const totalAtk = stats.baseAtk + weaponAtk;
-  const calculatedDps = Math.round(totalAtk * stats.baseSpd);
+  const totalAtk = baseAtk + weaponAtk;
+  const calculatedDps = Math.round(totalAtk * baseSpd);
 
   const canChallengeBoss = biomeStage >= 9;
+
+  const toggleLogs = useCallback(() => setShowLogs(prev => !prev), []);
 
   return (
     <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-3 sm:p-5 rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden backdrop-blur-md`}>
@@ -92,7 +153,7 @@ export const BattleScreen: React.FC = () => {
           </h2>
         </div>
 
-        {/* Controles de Modo de Jogo (Auto-Avançar & Trava do Boss) */}
+        {/* Controles de Modo de Jogo */}
         <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5">
           <button
             onClick={toggleAutoAdvance}
@@ -123,13 +184,13 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Visual da Horda de Inimigos (Trilha de 10 Fases Neon Glowing) */}
+      {/* Trilha de 10 Fases */}
       <div className="my-3 bg-black/50 p-2.5 sm:p-3 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 px-4">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
           <Swords size={15} className="text-red-400" /> Progresso da Horda:
         </div>
         <div className="flex gap-1.5 sm:gap-2 items-center w-full sm:w-auto justify-between">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((stageNum) => {
+          {STAGE_NUMBERS.map((stageNum) => {
             const isCompleted = stageNum < biomeStage;
             const isCurrent = stageNum === biomeStage;
             return (
@@ -152,9 +213,9 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Arena de Batalha (Duelo Espelhado Anti-CLS: Herói vs Horda) */}
+      {/* Arena de Batalha */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
-        {/* Lado Esquerdo - Herói (Shinigami Substituto) */}
+        {/* Lado Esquerdo - Herói */}
         <div className="bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-cyan-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden min-h-[300px]">
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -184,11 +245,11 @@ export const BattleScreen: React.FC = () => {
             <span className="flex items-center gap-1 font-bold text-amber-300">
               <Flame size={13} className="text-amber-400" /> {calculatedDps} DPS
             </span>
-            <span>⚡ {stats.baseSpd.toFixed(2)}/s</span>
+            <span>⚡ {baseSpd.toFixed(2)}/s</span>
           </div>
         </div>
 
-        {/* Lado Direito - Horda Inimiga (ALTURA FIXA MIN-H PARA 100% ELIMINAR CLS) */}
+        {/* Lado Direito - Horda Inimiga */}
         <div className={`bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col justify-between relative overflow-hidden transition duration-150 min-h-[300px] ${isHitAnimating ? 'border-red-500 bg-red-950/20' : ''}`}>
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
           
@@ -202,25 +263,11 @@ export const BattleScreen: React.FC = () => {
             )}
           </div>
 
-          {/* Área Central Estável dos Mobs (3 Slots Fixos Pré-alocados para Garantir 0 CLS) */}
+          {/* 3 Slots Fixos Anti-CLS */}
           <div className="flex flex-col justify-start gap-2 my-auto h-[195px] relative overflow-hidden">
-            {/* Números Flutuantes de Dano posicionados com precisão */}
-            <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-30">
-              {floatingDamages.map((dmg) => (
-                <div
-                  key={dmg.id}
-                  className={`absolute font-black text-sm pointer-events-none animate-float-damage ${
-                    dmg.isCrit ? 'text-amber-400 text-base drop-shadow-[0_2px_4px_rgba(239,68,68,0.8)]' : 'text-red-400'
-                  }`}
-                  style={{ transform: `translateX(${dmg.xOffset}px)` }}
-                >
-                  -{dmg.damage} {dmg.isCrit ? '🔥 CRÍTICO!' : ''}
-                </div>
-              ))}
-            </div>
+            <DamageOverlay enemyHp={primaryEnemy?.currentHp} />
 
-            {/* Mobs da Horda - Renderiza sempre 3 slots fixos para nunca alterar a altura */}
-            {[0, 1, 2].map((slotIndex) => {
+            {SLOT_INDICES.map((slotIndex) => {
               const enemy = currentEnemies[slotIndex];
               if (!enemy) {
                 return (
@@ -258,7 +305,6 @@ export const BattleScreen: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Barra de Vida individual */}
                   <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner">
                     <div
                       className="bg-gradient-to-r from-red-700 via-red-500 to-amber-500 h-full rounded-full transition-all duration-150"
@@ -277,9 +323,8 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Slots de Habilidade com Nomes Formatados de gameCatalog */}
+      {/* Slots de Habilidade */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-2">
-        {/* Slot 1 Skill */}
         <div className="bg-black/60 p-3 rounded-xl border border-purple-500/40 flex items-center justify-between backdrop-blur-md">
           <div>
             <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">{GAME_THEME.skillSlot1Label}</div>
@@ -298,7 +343,6 @@ export const BattleScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Slot 2 Ultimate */}
         <div className="bg-black/60 p-3 rounded-xl border border-amber-500/40 flex items-center justify-between backdrop-blur-md">
           <div>
             <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">{GAME_THEME.skillSlot2Label}</div>
@@ -318,10 +362,10 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Log de Batalha Minimizável (Opcional) */}
+      {/* Log de Batalha Minimizável */}
       <div className="mt-2 bg-black/80 rounded-xl border border-white/10 overflow-hidden shadow-inner transition-all duration-300">
         <button
-          onClick={() => setShowLogs(!showLogs)}
+          onClick={toggleLogs}
           className="w-full p-2.5 bg-slate-950/90 hover:bg-slate-900 text-xs text-slate-300 font-mono font-bold flex justify-between items-center px-4 cursor-pointer border-b border-white/5"
         >
           <span className="flex items-center gap-2">
@@ -334,7 +378,7 @@ export const BattleScreen: React.FC = () => {
         </button>
 
         {showLogs && (
-          <div className="p-3 h-32 overflow-y-auto flex flex-col-reverse text-xs font-mono gap-1.5">
+          <div className="p-3 h-32 overflow-y-auto flex flex-col-reverse text-xs font-mono gap-1.5" role="log" aria-live="polite">
             {logs.map((log) => (
               <div
                 key={log.id}

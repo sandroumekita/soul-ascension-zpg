@@ -266,6 +266,7 @@ export const SKILLS_CATALOG: SkillData[] = [
     description: 'Névoa de sangue místico que atinge toda a horda e cura 100% do HP.',
     cooldownSec: 25.0,
     damageMultiplier: 8.5,
+    healPct: 1.0,
     isAoE: true,
     maxTargets: 5,
   },
@@ -344,7 +345,7 @@ export const BIOMES_CATALOG: Biome[] = [
     description: 'A fortaleza da Sociedade das Almas guardada pelos 13 Esquadrões.',
     bgGradient: 'from-amber-950 via-stone-900 to-amber-950',
     enemies: [
-      { name: 'Seireitei Guard', hpBase: 1200, atkBase: 85, defBase: 35, expBase: 180, goldBase: 140, attackSpeedSec: 1.4, avatarIcon: '⚔️' },
+      { name: 'Seireitei Guard', hpBase: 850, atkBase: 65, defBase: 25, expBase: 150, goldBase: 120, attackSpeedSec: 1.4, avatarIcon: '⚔️' },
       { name: 'Onmitsukidō Ninja', hpBase: 2200, atkBase: 140, defBase: 50, expBase: 320, goldBase: 250, attackSpeedSec: 0.8, avatarIcon: '🥷' },
       { name: '3rd Seat Officer', hpBase: 4500, atkBase: 220, defBase: 90, expBase: 600, goldBase: 480, attackSpeedSec: 1.6, avatarIcon: '🎖️' },
       { name: 'Kido Master Guard', hpBase: 3500, atkBase: 280, defBase: 45, expBase: 500, goldBase: 400, attackSpeedSec: 2.2, avatarIcon: '🔮' },
@@ -358,7 +359,7 @@ export const BIOMES_CATALOG: Biome[] = [
     description: 'O deserto branco e o Palácio dos Espadas sob a lua eterna.',
     bgGradient: 'from-teal-950 via-slate-900 to-teal-950',
     enemies: [
-      { name: 'Gillian (Menos Grande)', hpBase: 15000, atkBase: 650, defBase: 250, expBase: 2000, goldBase: 1600, attackSpeedSec: 2.5, avatarIcon: '🗿' },
+      { name: 'Gillian (Menos Grande)', hpBase: 12500, atkBase: 550, defBase: 200, expBase: 1800, goldBase: 1400, attackSpeedSec: 2.5, avatarIcon: '🗿' },
       { name: 'Adjuchas Beast', hpBase: 32000, atkBase: 1100, defBase: 450, expBase: 3800, goldBase: 3000, attackSpeedSec: 1.3, avatarIcon: '🐺' },
       { name: 'Arrancar Fracción', hpBase: 65000, atkBase: 1800, defBase: 700, expBase: 7000, goldBase: 5500, attackSpeedSec: 1.1, avatarIcon: '⚔️' },
       { name: 'Exequias Soldier', hpBase: 45000, atkBase: 1400, defBase: 550, expBase: 5200, goldBase: 4200, attackSpeedSec: 0.9, avatarIcon: '☠️' },
@@ -372,8 +373,9 @@ export const BIOMES_CATALOG: Biome[] = [
     description: 'O reino celestial do Rei das Almas e a arena dos Transcendentes.',
     bgGradient: 'from-purple-950 via-slate-950 to-purple-950',
     enemies: [
-      { name: 'Royal Guard Construct', hpBase: 150000, atkBase: 4500, defBase: 1800, expBase: 18000, goldBase: 14000, attackSpeedSec: 1.5, avatarIcon: '🏛️' },
+      { name: 'Royal Guard Construct', hpBase: 175000, atkBase: 4500, defBase: 1800, expBase: 18000, goldBase: 14000, attackSpeedSec: 1.5, avatarIcon: '🏛️' },
       { name: 'Quincy Sternritter', hpBase: 320000, atkBase: 8500, defBase: 3200, expBase: 35000, goldBase: 28000, attackSpeedSec: 1.0, avatarIcon: '🏹' },
+      { name: 'Zero Division Member', hpBase: 480000, atkBase: 11000, defBase: 4200, expBase: 48000, goldBase: 38000, attackSpeedSec: 1.2, avatarIcon: '🏛️' },
       { name: 'Schutzstaffel Elite', hpBase: 650000, atkBase: 14000, defBase: 5500, expBase: 65000, goldBase: 50000, attackSpeedSec: 0.8, avatarIcon: '⚡' },
     ],
     boss: { name: 'Sōsuke Aizen Transcendente', hpBase: 2500000, atkBase: 28000, defBase: 9500, expBase: 250000, goldBase: 200000, attackSpeedSec: 1.2, avatarIcon: '🌌' },

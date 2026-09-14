@@ -46,6 +46,7 @@ export interface SkillData {
   defBuffPct?: number;
   isAoE?: boolean; // Se ataca múltiplos alvos da horda ao mesmo tempo
   maxTargets?: number; // Quantidade de inimigos atingidos pela área
+  healPct?: number; // Percentual de HP restaurado ao ativar (e.g. 1.0 = 100%)
 }
 
 export interface OwnedSkill {

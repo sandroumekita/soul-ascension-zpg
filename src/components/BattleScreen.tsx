@@ -156,56 +156,56 @@ export const BattleScreen: React.FC = () => {
   const toggleLogs = useCallback(() => setShowLogs(prev => !prev), []);
 
   return (
-    <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-3 sm:p-5 rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden backdrop-blur-md`}>
-      {/* Header do Bioma e Dificuldade */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center bg-black/60 p-3.5 sm:p-4 rounded-xl border border-white/10 backdrop-blur-md gap-3">
-        <div>
-          <span className="text-[10px] text-amber-400 font-bold tracking-widest uppercase block mb-0.5">{currentBiome.japaneseName}</span>
-          <h2 className="text-lg sm:text-xl font-extrabold flex items-center gap-2">
-            {currentBiome.name}
-            <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full bg-red-950 border border-red-500 text-red-400 uppercase font-mono tracking-wider font-bold">
+    <div className={`flex flex-col bg-gradient-to-b ${currentBiome.bgGradient} text-white p-2 sm:p-5 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-700/60 relative overflow-hidden backdrop-blur-md`}>
+      {/* Header do Bioma e Dificuldade (Compacto no Mobile) */}
+      <div className="flex justify-between items-center bg-black/60 py-2 px-2.5 sm:p-4 rounded-xl border border-white/10 backdrop-blur-md gap-2">
+        <div className="min-w-0">
+          <span className="text-[9px] sm:text-[10px] text-amber-400 font-bold tracking-widest uppercase block leading-none">{currentBiome.japaneseName}</span>
+          <h2 className="text-xs sm:text-lg font-extrabold flex items-center gap-1.5 leading-tight mt-0.5">
+            <span className="truncate max-w-[110px] xs:max-w-[160px] sm:max-w-none">{currentBiome.name}</span>
+            <span className="text-[9px] sm:text-xs px-1.5 py-0.2 rounded-full bg-red-950 border border-red-500 text-red-400 uppercase font-mono font-bold shrink-0">
               {difficulty}
             </span>
           </h2>
         </div>
 
         {/* Controles de Modo de Jogo */}
-        <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={toggleAutoAdvance}
-            className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 ${
+            className={`text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold border transition flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 ${
               autoAdvance
                 ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
                 : 'bg-amber-950/80 border-amber-500 text-amber-300'
             }`}
             title="Alternar entre avançar horda ou farmar no mesmo estágio"
           >
-            {autoAdvance ? '🔄 Horda Contínua ON' : '🛑 Farm Fixo (Parado)'}
+            {autoAdvance ? '🔄 Auto ON' : '🛑 Farm Fixo'}
           </button>
 
           {!isFightingBoss && canChallengeBoss && (
             <button
               onClick={challengeBoss}
-              className="text-xs px-3.5 py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition flex items-center gap-1.5 animate-pulse cursor-pointer hover:scale-105 active:scale-95"
+              className="text-[10px] sm:text-xs px-2 sm:px-3.5 py-1 sm:py-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition flex items-center gap-1 animate-pulse cursor-pointer hover:scale-105 active:scale-95 shrink-0"
               title="Desafiar Boss da Fase 10!"
             >
-              <Skull size={14} /> Desafiar Boss!
+              <Skull size={12} /> Boss!
             </button>
           )}
           {isFightingBoss && (
-            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/50 rounded-lg font-bold animate-pulse">
-              <Crown size={14} /> LUTA DE BOSS
+            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/50 rounded-lg font-bold animate-pulse shrink-0">
+              <Crown size={12} /> BOSS
             </span>
           )}
         </div>
       </div>
 
       {/* Trilha de 10 Fases */}
-      <div className="my-3 bg-black/50 p-2.5 sm:p-3 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 px-4">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-          <Swords size={15} className="text-red-400" /> Progresso da Horda:
+      <div className="my-1.5 sm:my-3 bg-black/50 py-1.5 px-2 sm:p-2.5 rounded-xl border border-white/5 flex justify-between items-center gap-1">
+        <div className="hidden xs:flex items-center gap-1 text-[10px] sm:text-xs font-bold text-slate-300 shrink-0">
+          <Swords size={12} className="text-red-400" /> Fase:
         </div>
-        <div className="flex gap-1.5 sm:gap-2 items-center w-full sm:w-auto justify-between">
+        <div className="flex gap-1 sm:gap-1.5 items-center w-full xs:w-auto justify-between">
           {STAGE_NUMBERS.map((stageNum) => {
             const isCompleted = stageNum < biomeStage;
             const isCurrent = stageNum === biomeStage;
@@ -213,7 +213,7 @@ export const BattleScreen: React.FC = () => {
               <button
                 key={stageNum}
                 onClick={() => selectStage(stageNum)}
-                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] font-mono font-bold border transition cursor-pointer hover:scale-115 active:scale-95 ${
+                className={`w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-mono font-bold border transition cursor-pointer hover:scale-115 active:scale-95 ${
                   isCompleted
                     ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400 hover:bg-emerald-800'
                     : isCurrent
@@ -229,36 +229,36 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Arena de Batalha */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
+      {/* Arena de Batalha (Lado a Lado no mobile e desktop) */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 my-1 sm:my-2">
         {/* Lado Esquerdo - Herói */}
-        <div className={`bg-slate-950/80 p-4 sm:p-5 rounded-2xl border ${
+        <div className={`bg-slate-950/80 p-2 sm:p-5 rounded-xl sm:rounded-2xl border ${
           playerDeathTimerSec > 0
             ? 'border-red-600/80 shadow-[0_0_20px_rgba(239,68,68,0.4)]'
             : activeBuff
             ? 'border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
             : 'border-cyan-500/40 shadow-xl'
-        } flex flex-col items-center justify-between relative overflow-hidden min-h-[300px]`}>
+        } flex flex-col items-center justify-between relative overflow-hidden min-h-[260px] sm:min-h-[300px]`}>
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
           {/* Overlay Sutil de Morte / Recuperação (apenas dentro do card do personagem) */}
           {playerDeathTimerSec > 0 && (
-            <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-40 p-3 pointer-events-none">
-              <div className="bg-slate-950/95 border border-red-500/80 px-4 py-3 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 text-center max-w-[220px]">
-                <span className="text-[11px] font-mono font-extrabold text-red-400 flex items-center gap-1.5">
-                  💀 Shinigami Derrotado {consecutiveDeaths > 1 && `(${consecutiveDeaths}x)`}
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] rounded-xl sm:rounded-2xl flex flex-col items-center justify-center z-40 p-2 sm:p-3 pointer-events-none">
+              <div className="bg-slate-950/95 border border-red-500/80 px-2.5 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl shadow-2xl flex flex-col items-center gap-1 text-center max-w-[200px]">
+                <span className="text-[10px] sm:text-[11px] font-mono font-extrabold text-red-400 flex items-center gap-1">
+                  💀 Derrotado {consecutiveDeaths > 1 && `(${consecutiveDeaths}x)`}
                 </span>
-                <span className="text-xs text-slate-300 font-mono">
-                  Recuperando em: <strong className="text-red-400 text-sm font-black">{playerDeathTimerSec.toFixed(1)}s</strong>
+                <span className="text-[11px] sm:text-xs text-slate-300 font-mono">
+                  Revive em: <strong className="text-red-400 text-xs sm:text-sm font-black">{playerDeathTimerSec.toFixed(1)}s</strong>
                 </span>
                 {consecutiveDeaths > 1 && (
-                  <span className="text-[9px] text-amber-400 font-mono bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded">
-                    ⚠️ Penalidade: +{((consecutiveDeaths - 1) * 1.5).toFixed(1)}s (Max: 8s)
+                  <span className="text-[8px] sm:text-[9px] text-amber-400 font-mono bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.2 rounded">
+                    +{((consecutiveDeaths - 1) * 1.5).toFixed(1)}s (Max 8s)
                   </span>
                 )}
                 {consecutiveDeaths >= 3 && (
-                  <span className="text-[9px] text-red-300 font-bold bg-red-950/90 border border-red-700 px-2 py-0.5 rounded animate-pulse">
-                    🛑 Horda Contínua Desativada!
+                  <span className="text-[8px] sm:text-[9px] text-red-300 font-bold bg-red-950/90 border border-red-700 px-1.5 py-0.2 rounded animate-pulse">
+                    🛑 Auto Desativado!
                   </span>
                 )}
               </div>
@@ -266,31 +266,31 @@ export const BattleScreen: React.FC = () => {
           )}
 
           {/* Header do Card do Herói */}
-          <div className="w-full flex justify-between items-center mb-2 z-10">
-            <span className="font-extrabold text-cyan-300 text-xs sm:text-sm flex items-center gap-1.5 truncate">
-              <Sparkles size={15} className="text-cyan-400 shrink-0" />
+          <div className="w-full flex justify-between items-center mb-1 sm:mb-2 z-10 gap-1">
+            <span className="font-extrabold text-cyan-300 text-[10px] sm:text-sm flex items-center gap-1 truncate">
+              <Sparkles size={12} className="text-cyan-400 shrink-0 sm:w-3.5 sm:h-3.5" />
               <span className="truncate">{GAME_THEME.heroTitle}</span>
             </span>
-            <span className={`text-xs font-mono px-2 py-0.5 rounded border font-bold shrink-0 ${
+            <span className={`text-[9px] sm:text-xs font-mono px-1.5 sm:px-2 py-0.5 rounded border font-bold shrink-0 ${
               playerDeathTimerSec > 0
                 ? 'text-red-400 bg-red-950/80 border-red-700 animate-pulse'
                 : 'text-cyan-200 bg-cyan-950/60 border-cyan-800'
             }`}>
-              {playerCurrentHp} / {playerMaxHp} HP
+              {playerCurrentHp}/{playerMaxHp}
             </span>
           </div>
 
-          {/* Notificações de Ativação (Empilhadas verticalmente, sem colisão entre si ou com o header) */}
-          <div className="absolute top-12 inset-x-0 flex flex-col items-center gap-1.5 z-30 pointer-events-none px-3">
+          {/* Notificações de Ativação */}
+          <div className="absolute top-9 sm:top-12 inset-x-0 flex flex-col items-center gap-1 z-30 pointer-events-none px-2">
             {lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2000 && (
-              <div className="flex items-center gap-1.5 bg-amber-950/95 border border-amber-400/90 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold text-amber-300 shadow-xl animate-bounce backdrop-blur-md">
+              <div className="flex items-center gap-1 bg-amber-950/95 border border-amber-400/90 px-2 sm:px-3 py-0.5 rounded-full text-[9px] sm:text-[11px] font-extrabold text-amber-300 shadow-xl animate-bounce backdrop-blur-md">
                 <span>🔥 卍解 · {lastBankaiUsed.name.replace(/^Bankai:\s*/i, '')}</span>
               </div>
             )}
             {lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500 && (
-              <div className="flex items-center gap-1 bg-purple-950/95 border border-purple-400/90 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold text-purple-200 shadow-xl animate-bounce backdrop-blur-md">
-                <Zap size={11} className="text-purple-300 shrink-0" />
-                <span>{lastSkillUsed.name}</span>
+              <div className="flex items-center gap-1 bg-purple-950/95 border border-purple-400/90 px-2 sm:px-3 py-0.5 rounded-full text-[9px] sm:text-[11px] font-extrabold text-purple-200 shadow-xl animate-bounce backdrop-blur-md">
+                <Zap size={10} className="text-purple-300 shrink-0" />
+                <span className="truncate max-w-[110px]">{lastSkillUsed.name}</span>
               </div>
             )}
           </div>
@@ -298,7 +298,7 @@ export const BattleScreen: React.FC = () => {
           {/* Avatar HD Transparente do Herói */}
           <div className="my-auto flex flex-col items-center justify-center z-10">
             <HeroAvatarPixel
-              size="md"
+              size="responsive"
               isAttacking={isHitAnimating}
               isDead={playerDeathTimerSec > 0}
               isBankai={!!activeBuff}
@@ -306,7 +306,7 @@ export const BattleScreen: React.FC = () => {
           </div>
 
           {/* Barra de Vida Player */}
-          <div className="w-full bg-slate-900 h-4 rounded-full overflow-hidden border border-cyan-900/60 p-0.5 mt-2 mb-2 shadow-inner z-10">
+          <div className="w-full bg-slate-900 h-2.5 sm:h-3.5 rounded-full overflow-hidden border border-cyan-900/60 p-0.5 mt-1 sm:mt-2 mb-1 sm:mb-2 shadow-inner z-10">
             <div
               className={`h-full rounded-full transition-all duration-200 ${
                 playerDeathTimerSec > 0
@@ -317,51 +317,51 @@ export const BattleScreen: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-center gap-3 text-xs text-cyan-300 font-semibold bg-black/40 px-3.5 py-1 rounded-full border border-white/5 z-10">
+          <div className="flex justify-center gap-2 sm:gap-3 text-[9px] sm:text-xs text-cyan-300 font-semibold bg-black/40 px-2 sm:px-3.5 py-0.5 sm:py-1 rounded-full border border-white/5 z-10">
             <span className="flex items-center gap-1 font-bold text-amber-300">
-              <Flame size={13} className="text-amber-400" /> {calculatedDps} DPS
+              <Flame size={11} className="text-amber-400" /> {calculatedDps} DPS
             </span>
             <span>⚡ {baseSpd.toFixed(2)}/s</span>
           </div>
 
           {/* Indicadores compactos de CD no Card do Herói */}
-          <div className="flex justify-center items-center gap-2 mt-2 z-10 text-[10px] font-mono">
+          <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-1.5 mt-1 sm:mt-1.5 z-10 text-[8px] sm:text-[10px] font-mono w-full">
             {skill1Obj && (
-              <div className={`px-2 py-0.5 rounded-md border flex items-center gap-1 transition ${
+              <div className={`px-1.5 py-0.5 rounded border flex items-center gap-1 transition ${
                 skill1Cooldown > 0
                   ? 'bg-purple-950/50 border-purple-900/60 text-purple-300/80'
                   : 'bg-purple-950/90 border-purple-500/70 text-purple-200 font-bold'
               }`}>
-                <span>⚡ {skill1Obj.name.length > 12 ? `${skill1Obj.name.slice(0, 10)}...` : skill1Obj.name}:</span>
+                <span>⚡:</span>
                 {skill1Cooldown > 0 ? (
                   <span className="font-bold text-purple-300 flex items-center gap-0.5">
-                    <strong className="text-[8px] bg-purple-500/30 text-purple-200 px-1 rounded">CD</strong>
+                    <strong className="text-[7px] sm:text-[8px] bg-purple-500/30 text-purple-200 px-0.5 rounded">CD</strong>
                     {skill1Cooldown.toFixed(1)}s
                   </span>
                 ) : (
-                  <span className="text-emerald-400 font-bold">PRONTO</span>
+                  <span className="text-emerald-400 font-bold">OK</span>
                 )}
               </div>
             )}
 
             {skill2Obj && (
-              <div className={`px-2 py-0.5 rounded-md border flex items-center gap-1 transition ${
+              <div className={`px-1.5 py-0.5 rounded border flex items-center gap-1 transition ${
                 activeBuff
                   ? 'bg-amber-950/90 border-amber-400 text-amber-300 font-bold animate-pulse'
                   : skill2Cooldown > 0
                   ? 'bg-amber-950/50 border-amber-900/60 text-amber-300/80'
                   : 'bg-amber-950/90 border-amber-500/70 text-amber-200 font-bold'
               }`}>
-                <span>🔥 {skill2Obj.name.length > 12 ? `${skill2Obj.name.slice(0, 10)}...` : skill2Obj.name}:</span>
+                <span>🔥:</span>
                 {activeBuff ? (
                   <span className="text-amber-300 font-bold">({activeBuff.durationLeft.toFixed(0)}s)</span>
                 ) : skill2Cooldown > 0 ? (
                   <span className="font-bold text-amber-300 flex items-center gap-0.5">
-                    <strong className="text-[8px] bg-amber-500/30 text-amber-200 px-1 rounded">CD</strong>
+                    <strong className="text-[7px] sm:text-[8px] bg-amber-500/30 text-amber-200 px-0.5 rounded">CD</strong>
                     {skill2Cooldown.toFixed(1)}s
                   </span>
                 ) : (
-                  <span className="text-emerald-400 font-bold">PRONTO</span>
+                  <span className="text-emerald-400 font-bold">OK</span>
                 )}
               </div>
             )}
@@ -369,21 +369,21 @@ export const BattleScreen: React.FC = () => {
         </div>
 
         {/* Lado Direito - Horda Inimiga */}
-        <div className={`bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-red-500/40 shadow-xl flex flex-col justify-between relative overflow-hidden transition duration-150 min-h-[300px] ${isHitAnimating ? 'border-red-500 bg-red-950/20' : ''}`}>
+        <div className={`bg-slate-950/80 p-2 sm:p-5 rounded-xl sm:rounded-2xl border border-red-500/40 shadow-xl flex flex-col justify-between relative overflow-hidden transition duration-150 min-h-[260px] sm:min-h-[300px] ${isHitAnimating ? 'border-red-500 bg-red-950/20' : ''}`}>
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
           
           {/* Header do Card da Horda */}
-          <div className="text-xs font-bold text-red-400 mb-2 uppercase tracking-wider flex items-center justify-between border-b border-red-950/60 pb-1.5">
-            <span>{GAME_THEME.enemyFactionName} ({currentEnemies.length})</span>
+          <div className="text-[10px] sm:text-xs font-bold text-red-400 mb-1 sm:mb-2 uppercase tracking-wider flex items-center justify-between border-b border-red-950/60 pb-1">
+            <span className="truncate max-w-[90px] xs:max-w-none">{GAME_THEME.enemyFactionName} ({currentEnemies.length})</span>
             {currentEnemies.length > 1 && (
-              <span className="text-[10px] bg-red-950 px-2 py-0.5 rounded border border-red-800 text-amber-300 font-mono">
-                💥 Horda AoE
+              <span className="text-[8px] sm:text-[10px] bg-red-950 px-1.5 py-0.2 rounded border border-red-800 text-amber-300 font-mono shrink-0">
+                💥 AoE
               </span>
             )}
           </div>
 
           {/* 3 Slots Fixos Anti-CLS */}
-          <div className="flex flex-col justify-start gap-2 my-auto h-[195px] relative overflow-hidden">
+          <div className="flex flex-col justify-start gap-1 sm:gap-2 my-auto h-[155px] sm:h-[195px] relative overflow-hidden">
             <DamageOverlay enemyHp={primaryEnemy?.currentHp} />
 
             {SLOT_INDICES.map((slotIndex) => {
@@ -392,9 +392,9 @@ export const BattleScreen: React.FC = () => {
                 return (
                   <div
                     key={`empty_slot_${slotIndex}`}
-                    className="h-[58px] rounded-xl border border-dashed border-slate-950 bg-black/10 opacity-30 flex items-center justify-center text-[10px] text-slate-700 font-mono"
+                    className="h-[46px] sm:h-[58px] rounded-lg sm:rounded-xl border border-dashed border-slate-950 bg-black/10 opacity-30 flex items-center justify-center text-[9px] sm:text-[10px] text-slate-700 font-mono"
                   >
-                    -- Slot Vazio --
+                    -- Vazio --
                   </div>
                 );
               }
@@ -406,7 +406,7 @@ export const BattleScreen: React.FC = () => {
               return (
                 <div
                   key={enemy.id}
-                  className={`h-[58px] p-2 rounded-xl border backdrop-blur-md transition-all duration-300 flex flex-col justify-between overflow-hidden relative ${
+                  className={`h-[46px] sm:h-[58px] p-1 sm:p-2 rounded-lg sm:rounded-xl border backdrop-blur-md transition-all duration-300 flex flex-col justify-between overflow-hidden relative ${
                     isDead
                       ? 'bg-gradient-to-r from-red-950/90 via-black to-red-950/90 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.7)] animate-pulse'
                       : isCurrentTarget
@@ -414,33 +414,33 @@ export const BattleScreen: React.FC = () => {
                       : 'bg-black/40 border-slate-800 opacity-75'
                   }`}
                 >
-                  <div className="flex justify-between items-center z-10">
-                    <span className={`font-extrabold text-xs flex items-center gap-1.5 ${isDead ? 'text-red-400' : enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
+                  <div className="flex justify-between items-center z-10 gap-1">
+                    <span className={`font-extrabold text-[10px] sm:text-xs flex items-center gap-1 sm:gap-1.5 min-w-0 ${isDead ? 'text-red-400' : enemy.isBoss ? 'text-amber-400' : 'text-red-300'}`}>
                       <div className={isDead ? 'grayscale opacity-50 scale-90 transition-all duration-300' : ''}>
                         <PixelMobSprite icon={enemy.avatarIcon || '💀'} name={enemy.name} isBoss={enemy.isBoss} size="sm" />
                       </div>
-                      <span className={`truncate max-w-[120px] sm:max-w-[150px] ${isDead ? 'line-through opacity-75' : ''}`}>{enemy.name}</span>
+                      <span className={`truncate max-w-[55px] xs:max-w-[85px] sm:max-w-[150px] ${isDead ? 'line-through opacity-75' : ''}`}>{enemy.name}</span>
                       {isDead ? (
-                        <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded font-mono font-black shrink-0 animate-bounce shadow-md">
-                          💀 ELIMINADO
+                        <span className="text-[7px] sm:text-[9px] bg-red-600 text-white px-1 py-0.2 rounded font-mono font-black shrink-0 animate-bounce shadow-md">
+                          💀 MORT
                         </span>
                       ) : isCurrentTarget ? (
-                        <span className="text-[9px] bg-red-900 text-white px-1.5 py-0.2 rounded font-mono shrink-0">
+                        <span className="text-[7px] sm:text-[9px] bg-red-900 text-white px-1 py-0.2 rounded font-mono shrink-0">
                           ALVO
                         </span>
                       ) : null}
                     </span>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 font-bold ${
+                    <span className={`text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.2 sm:py-0.5 rounded border shrink-0 font-bold ${
                       isDead
                         ? 'text-red-400 bg-red-950 border-red-700 shadow-sm animate-pulse'
                         : 'text-gray-300 bg-black/60 border-white/10'
                     }`}>
-                      {isDead ? 0 : enemy.currentHp} / {enemy.maxHp} HP
+                      {isDead ? 0 : enemy.currentHp}/{enemy.maxHp}
                     </span>
                   </div>
 
                   {/* Barra de Vida individual */}
-                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner z-10">
+                  <div className="w-full bg-slate-900 h-1.5 sm:h-2 rounded-full overflow-hidden border border-red-900/60 p-0.5 shadow-inner z-10">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
                         isDead
@@ -460,15 +460,15 @@ export const BattleScreen: React.FC = () => {
             })}
           </div>
 
-          <div className="flex justify-center gap-4 text-xs font-semibold text-gray-300 bg-black/40 px-3.5 py-1 rounded-full border border-white/5 mt-2">
-            <span className="flex items-center gap-1"><Zap size={13} className="text-amber-400" /> ATK: {primaryEnemy?.atk || 0}</span>
-            <span className="flex items-center gap-1"><Shield size={13} className="text-blue-400" /> DEF: {primaryEnemy?.def || 0}</span>
+          <div className="flex justify-center gap-2 sm:gap-4 text-[9px] sm:text-xs font-semibold text-gray-300 bg-black/40 px-2 sm:px-3.5 py-0.5 sm:py-1 rounded-full border border-white/5 mt-1 sm:mt-2">
+            <span className="flex items-center gap-1"><Zap size={11} className="text-amber-400" /> ATK:{primaryEnemy?.atk || 0}</span>
+            <span className="flex items-center gap-1"><Shield size={11} className="text-blue-400" /> DEF:{primaryEnemy?.def || 0}</span>
           </div>
         </div>
       </div>
 
       {/* Slots de Habilidade / Troca Rápida */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-2">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 my-1 sm:my-2">
         {/* Slot 1: Habilidade / Hadō */}
         {(() => {
           const isSkillRecentlyUsed = !!(lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500);
@@ -476,57 +476,31 @@ export const BattleScreen: React.FC = () => {
           const cdPct1 = Math.max(0, Math.min(100, ((maxCd1 - skill1Cooldown) / maxCd1) * 100));
 
           return (
-            <div className={`p-3 rounded-xl border flex flex-col justify-between backdrop-blur-md transition-all duration-300 ${
+            <div className={`p-2 sm:p-3 rounded-xl border flex flex-col justify-between backdrop-blur-md transition-all duration-300 ${
               isSkillRecentlyUsed
                 ? 'bg-purple-950/90 border-purple-400 ring-2 ring-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] scale-[1.02]'
                 : skill1Cooldown > 0
                 ? 'bg-black/70 border-purple-950/80 opacity-90'
                 : 'bg-black/60 border-purple-500/40 hover:border-purple-500/70'
             }`}>
-              <div className="flex items-center justify-between w-full gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Zap size={11} /> {GAME_THEME.skillSlot1Label}
-                  </div>
-                  <div className="relative mt-1">
-                    <select
-                      value={equippedSlot1SkillId || ''}
-                      onChange={(e) => equipSkill(e.target.value, 1)}
-                      className="w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-xs sm:text-sm rounded-lg px-2.5 py-1 border border-purple-500/50 hover:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer transition truncate pr-7 appearance-none shadow-inner"
-                      title="Clique para trocar a Habilidade Ativa / Hadō"
-                    >
-                      {slot1Skills.map((s) => {
-                        const isUnlocked = !!ownedSkills[s.id]?.unlocked;
-                        return (
-                          <option
-                            key={s.id}
-                            value={s.id}
-                            disabled={!isUnlocked}
-                            className={isUnlocked ? 'bg-slate-950 text-white font-medium' : 'bg-slate-900 text-slate-500 italic'}
-                          >
-                            {isUnlocked ? `⚡ ${s.name} (CD ${s.cooldownSec}s)` : `🔒 ${s.name} (Bloqueada)`}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-400">
-                      <ChevronDown size={13} />
-                    </div>
-                  </div>
+              {/* Linha superior: Rótulo + Status/CD */}
+              <div className="flex items-center justify-between w-full gap-1 mb-1">
+                <div className="text-[9px] sm:text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <Zap size={10} /> <span className="truncate">{GAME_THEME.skillSlot1Label}</span>
                 </div>
 
                 <div className="shrink-0">
                   {isSkillRecentlyUsed ? (
-                    <span className="text-[11px] font-black text-purple-200 bg-purple-900 px-2.5 py-1 rounded-lg border border-purple-400 shadow-md animate-bounce">
-                      ⚡ DISPARADA!
+                    <span className="text-[9px] sm:text-[10px] font-black text-purple-200 bg-purple-900 px-1.5 sm:px-2 py-0.5 rounded border border-purple-400 shadow-md animate-bounce">
+                      ⚡ ATIVOU!
                     </span>
                   ) : skill1Cooldown > 0 ? (
-                    <div className="flex items-center gap-1.5 bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/70 font-mono text-xs font-bold shadow-inner">
-                      <span className="text-[9px] font-black bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
+                    <div className="flex items-center gap-1 bg-purple-950/90 text-purple-300 px-1.5 sm:px-2 py-0.5 rounded border border-purple-500/70 font-mono text-[9px] sm:text-xs font-bold shadow-inner">
+                      <span className="text-[7px] sm:text-[8px] font-black bg-purple-500/30 text-purple-200 px-1 py-0.2 rounded">CD</span>
                       <span>{skill1Cooldown.toFixed(1)}s</span>
                     </div>
                   ) : (
-                    <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md flex items-center gap-1">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-300 bg-emerald-950/90 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-500 shadow-md flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                       PRONTO
                     </span>
@@ -534,9 +508,36 @@ export const BattleScreen: React.FC = () => {
                 </div>
               </div>
 
+              {/* Linha do Meio: Dropdown select */}
+              <div className="relative w-full">
+                <select
+                  value={equippedSlot1SkillId || ''}
+                  onChange={(e) => equipSkill(e.target.value, 1)}
+                  className="w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-[10px] sm:text-xs rounded-lg px-2 py-1 border border-purple-500/50 hover:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer transition truncate pr-6 appearance-none shadow-inner"
+                  title="Clique para trocar a Habilidade Ativa / Hadō"
+                >
+                  {slot1Skills.map((s) => {
+                    const isUnlocked = !!ownedSkills[s.id]?.unlocked;
+                    return (
+                      <option
+                        key={s.id}
+                        value={s.id}
+                        disabled={!isUnlocked}
+                        className={isUnlocked ? 'bg-slate-950 text-white font-medium' : 'bg-slate-900 text-slate-500 italic'}
+                      >
+                        {isUnlocked ? `⚡ ${s.name} (${s.cooldownSec}s)` : `🔒 ${s.name}`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-purple-400">
+                  <ChevronDown size={12} />
+                </div>
+              </div>
+
               {/* Barra de Recarga (CD Progress) */}
               {skill1Obj && (
-                <div className="w-full bg-slate-900/80 h-1.5 rounded-full overflow-hidden mt-2 border border-purple-950/60">
+                <div className="w-full bg-slate-900/80 h-1 sm:h-1.5 rounded-full overflow-hidden mt-1.5 border border-purple-950/60">
                   <div
                     className={`h-full transition-all duration-100 ${
                       skill1Cooldown > 0 ? 'bg-gradient-to-r from-purple-700 to-purple-400' : 'bg-emerald-400'
@@ -559,57 +560,31 @@ export const BattleScreen: React.FC = () => {
             : Math.max(0, Math.min(100, ((maxCd2 - skill2Cooldown) / maxCd2) * 100));
 
           return (
-            <div className={`p-3 rounded-xl border flex flex-col justify-between backdrop-blur-md transition-all duration-300 ${
+            <div className={`p-2 sm:p-3 rounded-xl border flex flex-col justify-between backdrop-blur-md transition-all duration-300 ${
               isBankaiActive || isBankaiJustFired
                 ? 'bg-gradient-to-r from-amber-950/90 via-black to-red-950/90 border-amber-400 ring-2 ring-amber-400/90 shadow-[0_0_25px_rgba(245,158,11,0.8)] animate-pulse'
                 : skill2Cooldown > 0
                 ? 'bg-black/70 border-amber-950/80 opacity-90'
                 : 'bg-black/60 border-amber-500/40 hover:border-amber-500/70'
             }`}>
-              <div className="flex items-center justify-between w-full gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Flame size={11} /> {GAME_THEME.skillSlot2Label}
-                  </div>
-                  <div className="relative mt-1">
-                    <select
-                      value={equippedSlot2SkillId || ''}
-                      onChange={(e) => equipSkill(e.target.value, 2)}
-                      className="w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-xs sm:text-sm rounded-lg px-2.5 py-1 border border-amber-500/50 hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer transition truncate pr-7 appearance-none shadow-inner"
-                      title="Clique para trocar a Bankai"
-                    >
-                      {slot2Skills.map((s) => {
-                        const isUnlocked = !!ownedSkills[s.id]?.unlocked;
-                        return (
-                          <option
-                            key={s.id}
-                            value={s.id}
-                            disabled={!isUnlocked}
-                            className={isUnlocked ? 'bg-slate-950 text-white font-medium' : 'bg-slate-900 text-slate-500 italic'}
-                          >
-                            {isUnlocked ? `🔥 ${s.name} (CD ${s.cooldownSec}s)` : `🔒 ${s.name} (Bloqueada)`}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-amber-400">
-                      <ChevronDown size={13} />
-                    </div>
-                  </div>
+              {/* Linha superior: Rótulo + Status/CD */}
+              <div className="flex items-center justify-between w-full gap-1 mb-1">
+                <div className="text-[9px] sm:text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <Flame size={10} /> <span className="truncate">{GAME_THEME.skillSlot2Label}</span>
                 </div>
 
                 <div className="shrink-0">
                   {isBankaiActive ? (
-                    <span className="text-[11px] font-black text-amber-300 bg-amber-950 px-2.5 py-1 rounded-lg border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
-                      🔥 ATIVA ({activeBuff.durationLeft.toFixed(1)}s)
+                    <span className="text-[9px] sm:text-[10px] font-black text-amber-300 bg-amber-950 px-1.5 sm:px-2 py-0.5 rounded border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
+                      🔥 ATIVA ({activeBuff.durationLeft.toFixed(0)}s)
                     </span>
                   ) : skill2Cooldown > 0 ? (
-                    <div className="flex items-center gap-1.5 bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500/70 font-mono text-xs font-bold shadow-inner">
-                      <span className="text-[9px] font-black bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
+                    <div className="flex items-center gap-1 bg-amber-950/90 text-amber-300 px-1.5 sm:px-2 py-0.5 rounded border border-amber-500/70 font-mono text-[9px] sm:text-xs font-bold shadow-inner">
+                      <span className="text-[7px] sm:text-[8px] font-black bg-amber-500/30 text-amber-200 px-1 py-0.2 rounded">CD</span>
                       <span>{skill2Cooldown.toFixed(1)}s</span>
                     </div>
                   ) : (
-                    <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md flex items-center gap-1 animate-pulse">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-amber-300 bg-amber-950/90 px-1.5 sm:px-2 py-0.5 rounded border border-amber-500 shadow-md flex items-center gap-1 animate-pulse">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
                       PRONTO
                     </span>
@@ -617,9 +592,36 @@ export const BattleScreen: React.FC = () => {
                 </div>
               </div>
 
+              {/* Linha do Meio: Dropdown select */}
+              <div className="relative w-full">
+                <select
+                  value={equippedSlot2SkillId || ''}
+                  onChange={(e) => equipSkill(e.target.value, 2)}
+                  className="w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-[10px] sm:text-xs rounded-lg px-2 py-1 border border-amber-500/50 hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer transition truncate pr-6 appearance-none shadow-inner"
+                  title="Clique para trocar a Bankai"
+                >
+                  {slot2Skills.map((s) => {
+                    const isUnlocked = !!ownedSkills[s.id]?.unlocked;
+                    return (
+                      <option
+                        key={s.id}
+                        value={s.id}
+                        disabled={!isUnlocked}
+                        className={isUnlocked ? 'bg-slate-950 text-white font-medium' : 'bg-slate-900 text-slate-500 italic'}
+                      >
+                        {isUnlocked ? `🔥 ${s.name} (${s.cooldownSec}s)` : `🔒 ${s.name}`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-amber-400">
+                  <ChevronDown size={12} />
+                </div>
+              </div>
+
               {/* Barra de Recarga (CD Progress) */}
               {skill2Obj && (
-                <div className="w-full bg-slate-900/80 h-1.5 rounded-full overflow-hidden mt-2 border border-amber-950/60">
+                <div className="w-full bg-slate-900/80 h-1 sm:h-1.5 rounded-full overflow-hidden mt-1.5 border border-amber-950/60">
                   <div
                     className={`h-full transition-all duration-100 ${
                       isBankaiActive
@@ -636,6 +638,7 @@ export const BattleScreen: React.FC = () => {
           );
         })()}
       </div>
+
 
       {/* Log de Batalha Minimizável */}
       <div className="mt-2 bg-black/80 rounded-xl border border-white/10 overflow-hidden shadow-inner transition-all duration-300">

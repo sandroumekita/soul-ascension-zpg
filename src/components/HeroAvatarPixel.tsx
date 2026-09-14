@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface HeroAvatarPixelProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'responsive';
   isAttacking?: boolean;
   isDead?: boolean;
   isBankai?: boolean;
@@ -14,7 +14,15 @@ const HeroAvatarPixelInner: React.FC<HeroAvatarPixelProps> = ({
   isBankai = false,
 }) => {
   const dimensionClass =
-    size === 'sm' ? 'w-24 h-24' : size === 'lg' ? 'w-56 h-56' : 'w-40 h-40';
+    size === 'xs'
+      ? 'w-16 h-16 sm:w-20 sm:h-20'
+      : size === 'sm'
+      ? 'w-20 h-20 sm:w-28 sm:h-28'
+      : size === 'responsive'
+      ? 'w-20 h-20 sm:w-32 sm:h-32 md:w-36 md:h-36'
+      : size === 'lg'
+      ? 'w-56 h-56'
+      : 'w-40 h-40';
 
   return (
     <div className={`relative inline-block select-none ${dimensionClass}`}>

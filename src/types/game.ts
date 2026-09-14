@@ -68,6 +68,7 @@ export interface Enemy {
   attackSpeedSec: number;
   avatarIcon: string;
   deathTimerSec?: number;
+  stunTimerSec?: number;
 }
 
 export interface Biome {

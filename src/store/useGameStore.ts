@@ -204,12 +204,12 @@ const computeStats = (state: {
   };
 };
 
-// Difficulty multipliers
+// Difficulty multipliers (rebalanced for smoother endgame)
 const DIFF_MULTIPLIERS: Record<Difficulty, number> = {
   normal: 1.0,
-  hard: 8.5,
-  nightmare: 65.0,
-  hell: 500.0,
+  hard: 3.5,
+  nightmare: 12.0,
+  hell: 35.0,
 };
 
 // SPD hard cap: max 5 hits per second regardless of stat
@@ -275,9 +275,14 @@ const executeSkill = (
   const aliveTargets = enemies.filter(e => e.currentHp > 0);
   const targetsCount = skill.isAoE ? Math.min(aliveTargets.length, skill.maxTargets || 3) : Math.min(1, aliveTargets.length);
   
+  let stunnedCount = 0;
   for (let i = 0; i < targetsCount; i++) {
     if (aliveTargets[i]) {
       aliveTargets[i].currentHp = Math.max(0, aliveTargets[i].currentHp - skillDamage);
+      if (skill.stunSec && skill.stunSec > 0 && aliveTargets[i].currentHp > 0) {
+        aliveTargets[i].stunTimerSec = Math.max(aliveTargets[i].stunTimerSec || 0, skill.stunSec);
+        stunnedCount++;
+      }
       if (aliveTargets[i].currentHp <= 0 && aliveTargets[i].deathTimerSec === undefined) {
         aliveTargets[i].deathTimerSec = 0.5;
       }
@@ -295,7 +300,7 @@ const executeSkill = (
   return {
     log: {
       id: uid(`log_${slotLabel.toLowerCase()}`),
-      text: `${emoji} ${skill.name} causou ${skillDamage} de dano${targetsCount > 1 ? ` em ${targetsCount} inimigos` : ''}!${healAmount > 0 ? ` Curou +${healAmount} HP!` : ''}`,
+      text: `${emoji} ${skill.name} causou ${skillDamage} de dano${targetsCount > 1 ? ` em ${targetsCount} inimigos` : ''}!${healAmount > 0 ? ` Curou +${healAmount} HP!` : ''}${stunnedCount > 0 ? ` Atordoou ${stunnedCount} alvo(s) por ${skill.stunSec}s!` : ''}`,
       type: 'skill',
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -555,6 +560,16 @@ export const useGameStore = create<GameState>()(
         if (result.healAmount > 0) {
           newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
         }
+        if (skill.durationSec) {
+          newBuff = {
+            atkBuffPct: skill.atkBuffPct || 0,
+            spdBuffPct: skill.spdBuffPct || 0,
+            defBuffPct: skill.defBuffPct || 0,
+            lifestealPct: skill.lifestealPct || 0,
+            durationLeft: skill.durationSec,
+            name: skill.name,
+          };
+        }
         lastSkillObj = { name: skill.name, isAoE: !!skill.isAoE, timestamp: Date.now() };
       }
 
@@ -582,9 +597,17 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    // --- ENEMY ATTACKS (all alive enemies attack, boss burst smoothed by deltaTime) ---
+    // Decrement stun timers on enemies
     enemies.forEach((enemy) => {
-      if (enemy.currentHp > 0) {
+      if (enemy.stunTimerSec && enemy.stunTimerSec > 0) {
+        enemy.stunTimerSec = Math.max(0, enemy.stunTimerSec - deltaTimeSec);
+      }
+    });
+
+    // --- ENEMY ATTACKS (only alive and non-stunned enemies) ---
+    enemies.forEach((enemy) => {
+      const isStunned = (enemy.stunTimerSec || 0) > 0;
+      if (enemy.currentHp > 0 && !isStunned) {
         const isBossSkillHit = enemy.isBoss && Math.random() < (0.15 * deltaTimeSec);
         let enemyDmgPerTick = 0;
 
@@ -684,16 +707,42 @@ export const useGameStore = create<GameState>()(
         });
       }
 
-      // Check Level Up
+      // Recompensas de Gemas: Boss concede +8 Gemas, Hordas normais têm 1.5% de chance de +1 Gema
+      if (wasBossDefeated) {
+        newStats.gems = (newStats.gems || 0) + 8;
+        logsToAdd.push({
+          id: uid('log_boss_gems'),
+          text: `💎 Recompensa do Boss: +8 Gemas Espirituais!`,
+          type: 'loot',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      } else if (Math.random() < 0.015) {
+        newStats.gems = (newStats.gems || 0) + 1;
+        logsToAdd.push({
+          id: uid('log_mob_gem'),
+          text: `🔮 Drop Raro: +1 Gema Espiritual! (Total: ${newStats.gems})`,
+          type: 'loot',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+
+      // Check Level Up (curva suave de 1.28x para progressão fluida)
       if (newStats.exp >= newStats.nextLevelExp) {
         newStats.level += 1;
         newStats.statPoints += 3;
         newStats.exp -= newStats.nextLevelExp;
-        newStats.nextLevelExp = Math.round(newStats.nextLevelExp * 1.75);
+        newStats.nextLevelExp = Math.round(newStats.nextLevelExp * 1.28);
+
+        // Marco de nível a cada 5 níveis: +15 Gemas
+        let gemBonus = 0;
+        if (newStats.level % 5 === 0) {
+          gemBonus = 15;
+          newStats.gems = (newStats.gems || 0) + gemBonus;
+        }
 
         logsToAdd.push({
           id: uid('log_lvl'),
-          text: `🎉 Level Up! Nível ${newStats.level}! (+3 pontos)`,
+          text: `🎉 Level Up! Nível ${newStats.level}! (+3 pontos)${gemBonus > 0 ? ` 🎁 Marco: +${gemBonus} Gemas!` : ''}`,
           type: 'system',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -949,9 +998,9 @@ export const useGameStore = create<GameState>()(
     let newBaseHp = stats.baseHp;
     let newBaseSpd = stats.baseSpd;
 
-    if (stat === 'atk') newBaseAtk += 4 * pointsToUse;
-    if (stat === 'def') newBaseDef += 2 * pointsToUse;
-    if (stat === 'hp') newBaseHp += 25 * pointsToUse;
+    if (stat === 'atk') newBaseAtk += 6 * pointsToUse;
+    if (stat === 'def') newBaseDef += 3 * pointsToUse;
+    if (stat === 'hp') newBaseHp += 50 * pointsToUse;
     if (stat === 'spd') {
       // Soft Cap Scaling for point allocation
       for (let i = 0; i < pointsToUse; i++) {

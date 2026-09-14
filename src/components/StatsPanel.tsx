@@ -160,7 +160,7 @@ export const StatsPanel: React.FC = () => {
             className="w-full py-1.5 sm:py-2.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 disabled:opacity-40 text-white font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
           >
             {allocStep === 'MAX' ? <ChevronsUp size={13} /> : <PlusCircle size={13} />}
-            <span className="truncate">+{currentPointsStep * 4} ATK ({currentPointsStep}pt)</span>
+            <span className="truncate">+{currentPointsStep * 6} ATK ({currentPointsStep}pt)</span>
           </button>
         </div>
 
@@ -187,7 +187,7 @@ export const StatsPanel: React.FC = () => {
             className="w-full py-1.5 sm:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-40 text-white font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
           >
             {allocStep === 'MAX' ? <ChevronsUp size={13} /> : <PlusCircle size={13} />}
-            <span className="truncate">+{currentPointsStep * 2} DEF ({currentPointsStep}pt)</span>
+            <span className="truncate">+{currentPointsStep * 3} DEF ({currentPointsStep}pt)</span>
           </button>
         </div>
 
@@ -214,7 +214,7 @@ export const StatsPanel: React.FC = () => {
             className="w-full py-1.5 sm:py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed"
           >
             {allocStep === 'MAX' ? <ChevronsUp size={13} /> : <PlusCircle size={13} />}
-            <span className="truncate">+{currentPointsStep * 25} HP ({currentPointsStep}pt)</span>
+            <span className="truncate">+{currentPointsStep * 50} HP ({currentPointsStep}pt)</span>
           </button>
         </div>
 

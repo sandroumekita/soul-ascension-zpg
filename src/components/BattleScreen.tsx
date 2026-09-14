@@ -495,6 +495,10 @@ export const BattleScreen: React.FC = () => {
                         <span className="text-[7px] sm:text-[9px] bg-red-600 text-white px-1 py-0.2 rounded font-mono font-black shrink-0 animate-bounce shadow-md">
                           💀
                         </span>
+                      ) : (enemy.stunTimerSec && enemy.stunTimerSec > 0) ? (
+                        <span className="text-[7px] sm:text-[8px] bg-amber-400 text-black font-black px-1 py-0.2 rounded font-mono shrink-0 border border-amber-300 shadow-md animate-bounce">
+                          💫 STUN {enemy.stunTimerSec.toFixed(1)}s
+                        </span>
                       ) : enemy.isBoss ? (
                         <span className="text-[7px] sm:text-[8px] bg-red-600 text-amber-200 px-1 py-0.2 rounded font-mono font-black shrink-0 border border-amber-400 shadow-sm animate-pulse">
                           👑 CHEFE

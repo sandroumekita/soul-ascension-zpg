@@ -58,6 +58,9 @@ interface GameState {
   currentEnemies: Enemy[];
   playerCurrentHp: number;
   playerMaxHp: number;
+  playerDeathTimerSec: number;
+  lastSkillUsed: { name: string; isAoE: boolean; timestamp: number } | null;
+  lastBankaiUsed: { name: string; durationSec: number; timestamp: number } | null;
   
   // Cached computed stats (invalidated on equip/stat/buff changes)
   _cachedStats: CalculatedStats | null;
@@ -326,6 +329,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   skill1Cooldown: 0,
   skill2Cooldown: 0,
   activeBuff: null,
+  playerDeathTimerSec: 0,
+  lastSkillUsed: null,
+  lastBankaiUsed: null,
 
   equippedSlot1SkillId: 'getsuga_tensho',
   equippedSlot2SkillId: 'bankai_tensa',
@@ -360,14 +366,47 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Use cached stats or compute fresh
     const calc = state._cachedStats || computeStats(state);
-    if (!state._cachedStats) {
-      // Cache it for subsequent ticks (no set() call here to avoid re-render, we'll include it in the final set)
+
+    // --- PLAYER DEATH & 3-SECOND RECOVERY COOLDOWN ---
+    if (state.playerDeathTimerSec > 0) {
+      const remainingDeathTimer = Math.max(0, state.playerDeathTimerSec - deltaTimeSec);
+      if (remainingDeathTimer === 0) {
+        // Recovery complete after 3 seconds: retreat to fallback stage and restore HP
+        const fallbackStage = state.biomeStage === 10 ? 9 : Math.max(1, state.biomeStage - 1);
+        const nextEnemies = spawnEnemiesForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
+        const recoveryLog: BattleLogMessage = {
+          id: uid('log_respawn'),
+          text: `⚡ Reiatsu restaurada! Seu Shinigami recuperou o HP e voltou ao combate na Fase ${fallbackStage}!`,
+          type: 'system',
+          timestamp: new Date().toLocaleTimeString(),
+        };
+
+        set({
+          biomeStage: fallbackStage,
+          isFightingBoss: false,
+          currentEnemies: nextEnemies,
+          playerCurrentHp: calc.hp,
+          playerMaxHp: calc.hp,
+          playerDeathTimerSec: 0,
+          _hitAccumulator: 0,
+          _healAccumulator: 0,
+          logs: [recoveryLog, ...state.logs].slice(0, 30),
+        });
+      } else {
+        set({
+          playerDeathTimerSec: remainingDeathTimer,
+          playerCurrentHp: 0,
+        });
+      }
+      return;
     }
 
     let newPlayerHp = state.playerCurrentHp;
     let newSkill1Cd = Math.max(0, state.skill1Cooldown - deltaTimeSec);
     let newSkill2Cd = Math.max(0, state.skill2Cooldown - deltaTimeSec);
     let newBuff = state.activeBuff;
+    let lastSkillObj = state.lastSkillUsed;
+    let lastBankaiObj = state.lastBankaiUsed;
 
     // Handle Buff Timer
     if (newBuff) {
@@ -436,6 +475,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (result.healAmount > 0) {
           newPlayerHp = Math.min(calc.hp, newPlayerHp + result.healAmount);
         }
+        lastSkillObj = { name: skill.name, isAoE: !!skill.isAoE, timestamp: Date.now() };
       }
 
       // Skill 2 (Bankai)
@@ -458,6 +498,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             name: bankai.name,
           };
         }
+        lastBankaiObj = { name: bankai.name, durationSec: bankai.durationSec || 6, timestamp: Date.now() };
       }
     }
 
@@ -683,23 +724,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    // --- PLAYER DEFEATED (AUTO-RECUO) ---
+    // --- PLAYER DEFEATED (INICIA COOLDOWN DE RECUPERAÇÃO DE 3 SEGUNDOS) ---
     if (newPlayerHp <= 0) {
-      const fallbackStage = state.biomeStage === 10 ? 9 : Math.max(1, state.biomeStage - 1);
       logsToAdd.push({
         id: uid('log_defeat'),
-        text: `💀 Seu Shinigami recuou para recuperar o HP. Voltando para a Fase ${fallbackStage}...`,
+        text: `💀 Seu Shinigami foi derrotado! Entrando em recuperação espiritual de Reiatsu (3.0s)...`,
         type: 'system',
         timestamp: new Date().toLocaleTimeString(),
       });
 
-      const nextEnemies = spawnEnemiesForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
       set({
-        biomeStage: fallbackStage,
-        isFightingBoss: false,
-        currentEnemies: nextEnemies,
-        playerCurrentHp: calc.hp,
-        playerMaxHp: calc.hp,
+        playerCurrentHp: 0,
+        playerDeathTimerSec: 3.0,
         _hitAccumulator: 0,
         _healAccumulator: 0,
         logs: [...logsToAdd, ...state.logs].slice(0, 30),
@@ -718,6 +754,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       skill1Cooldown: newSkill1Cd,
       skill2Cooldown: newSkill2Cd,
       activeBuff: newBuff,
+      lastSkillUsed: lastSkillObj,
+      lastBankaiUsed: lastBankaiObj,
       _cachedStats: calc,
       _hitAccumulator: hitAccum,
       _healAccumulator: healAccum,

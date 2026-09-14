@@ -74,6 +74,10 @@ export const BattleScreen: React.FC = () => {
     equippedWeapon,
     baseAtk,
     baseSpd,
+    playerDeathTimerSec,
+    lastSkillUsed,
+    lastBankaiUsed,
+    activeBuff,
   } = useGameStore(useShallow((state) => ({
     currentEnemies: state.currentEnemies,
     playerCurrentHp: state.playerCurrentHp,
@@ -91,6 +95,10 @@ export const BattleScreen: React.FC = () => {
     equippedWeapon: state.equippedWeapon,
     baseAtk: state.stats.baseAtk,
     baseSpd: state.stats.baseSpd,
+    playerDeathTimerSec: state.playerDeathTimerSec,
+    lastSkillUsed: state.lastSkillUsed,
+    lastBankaiUsed: state.lastBankaiUsed,
+    activeBuff: state.activeBuff,
   })));
 
   // Actions (stable references, won't trigger re-renders)
@@ -214,34 +222,98 @@ export const BattleScreen: React.FC = () => {
       </div>
 
       {/* Arena de Batalha */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2 relative">
+        {/* Banner de Ativação Épica de Bankai */}
+        {lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2200 && (
+          <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none overflow-hidden">
+            <div className="w-full bg-gradient-to-r from-transparent via-amber-950/95 to-transparent border-y-2 border-amber-400/90 py-3.5 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.9)] animate-pulse backdrop-blur-xs">
+              <span className="text-[10px] font-mono font-extrabold text-amber-300 tracking-[0.3em] uppercase">
+                ✦ LIBERAÇÃO ESPIRITUAL SUPREMA ✦
+              </span>
+              <div className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-300 to-red-500 uppercase tracking-widest font-mono drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] mt-0.5">
+                卍解 · {lastBankaiUsed.name}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Banner de Disparo de Habilidade (Hadō) */}
+        {lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1600 && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center gap-2 bg-gradient-to-r from-purple-950/95 via-indigo-950/95 to-purple-950/95 border-2 border-purple-400 px-4 py-1.5 rounded-full shadow-[0_0_25px_rgba(168,85,247,0.85)] animate-bounce">
+            <Zap size={14} className="text-purple-300 animate-spin" />
+            <span className="text-xs font-black text-purple-200 uppercase tracking-wider font-mono">
+              ⚡ HABILIDADE: {lastSkillUsed.name}!
+            </span>
+          </div>
+        )}
+
         {/* Lado Esquerdo - Herói */}
-        <div className="bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-cyan-500/40 shadow-xl flex flex-col items-center justify-between relative overflow-hidden min-h-[300px]">
+        <div className={`bg-slate-950/80 p-4 sm:p-5 rounded-2xl border ${
+          playerDeathTimerSec > 0
+            ? 'border-red-600/80 shadow-[0_0_30px_rgba(239,68,68,0.5)]'
+            : activeBuff
+            ? 'border-amber-500/80 shadow-[0_0_25px_rgba(245,158,11,0.4)]'
+            : 'border-cyan-500/40 shadow-xl'
+        } flex flex-col items-center justify-between relative overflow-hidden min-h-[300px]`}>
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="w-full flex justify-between items-center mb-2">
+          {/* Overlay de Morte com Countdown de 3s */}
+          {playerDeathTimerSec > 0 && (
+            <div className="absolute inset-0 bg-black/85 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center z-40 border-2 border-red-600/90 p-4 shadow-2xl animate-pulse">
+              <div className="text-4xl animate-bounce mb-1">💀</div>
+              <span className="text-xs font-mono font-black text-red-400 uppercase tracking-widest text-center">
+                SHINIGAMI DERROTADO
+              </span>
+              <p className="text-[11px] text-slate-300 font-mono mt-1 text-center">
+                Recuperando Reiatsu em:
+              </p>
+              <div className="text-4xl font-black font-mono text-red-500 mt-1 drop-shadow-[0_2px_15px_rgba(239,68,68,0.9)]">
+                {playerDeathTimerSec.toFixed(1)}s
+              </div>
+            </div>
+          )}
+
+          <div className="w-full flex justify-between items-center mb-2 z-10">
             <span className="font-extrabold text-cyan-300 text-sm sm:text-base flex items-center gap-1.5">
               <Sparkles size={16} className="text-cyan-400" /> {GAME_THEME.heroTitle}
+              {activeBuff && (
+                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                  🔥 BANKAI
+                </span>
+              )}
             </span>
-            <span className="text-xs font-mono text-cyan-200 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800 font-bold">
+            <span className={`text-xs font-mono px-2 py-0.5 rounded border font-bold ${
+              playerDeathTimerSec > 0
+                ? 'text-red-400 bg-red-950/80 border-red-700 animate-pulse'
+                : 'text-cyan-200 bg-cyan-950/60 border-cyan-800'
+            }`}>
               {playerCurrentHp} / {playerMaxHp} HP
             </span>
           </div>
 
           {/* Avatar HD Transparente do Herói */}
-          <div className="my-auto flex flex-col items-center justify-center">
-            <HeroAvatarPixel size="md" isAttacking={isHitAnimating} />
-          </div>
-
-          {/* Barra de Vida Player */}
-          <div className="w-full bg-slate-900 h-4 rounded-full overflow-hidden border border-cyan-900/60 p-0.5 mt-2 mb-2 shadow-inner">
-            <div
-              className="bg-gradient-to-r from-cyan-600 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-200"
-              style={{ width: `${playerHpPct}%` }}
+          <div className="my-auto flex flex-col items-center justify-center z-10">
+            <HeroAvatarPixel
+              size="md"
+              isAttacking={isHitAnimating}
+              isDead={playerDeathTimerSec > 0}
+              isBankai={!!activeBuff}
             />
           </div>
 
-          <div className="flex justify-center gap-3 text-xs text-cyan-300 font-semibold bg-black/40 px-3.5 py-1 rounded-full border border-white/5">
+          {/* Barra de Vida Player */}
+          <div className="w-full bg-slate-900 h-4 rounded-full overflow-hidden border border-cyan-900/60 p-0.5 mt-2 mb-2 shadow-inner z-10">
+            <div
+              className={`h-full rounded-full transition-all duration-200 ${
+                playerDeathTimerSec > 0
+                  ? 'w-0 bg-red-950'
+                  : 'bg-gradient-to-r from-cyan-600 via-teal-400 to-emerald-400'
+              }`}
+              style={{ width: `${playerDeathTimerSec > 0 ? 0 : playerHpPct}%` }}
+            />
+          </div>
+
+          <div className="flex justify-center gap-3 text-xs text-cyan-300 font-semibold bg-black/40 px-3.5 py-1 rounded-full border border-white/5 z-10">
             <span className="flex items-center gap-1 font-bold text-amber-300">
               <Flame size={13} className="text-amber-400" /> {calculatedDps} DPS
             </span>
@@ -350,41 +422,74 @@ export const BattleScreen: React.FC = () => {
 
       {/* Slots de Habilidade */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-2">
-        <div className="bg-black/60 p-3 rounded-xl border border-purple-500/40 flex items-center justify-between backdrop-blur-md">
-          <div>
-            <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">{GAME_THEME.skillSlot1Label}</div>
-            <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
-              {skill1Obj ? skill1Obj.name : 'Nenhuma Habilidade Equipada'}
+        {/* Slot 1: Habilidade / Hadō */}
+        {(() => {
+          const isSkillRecentlyUsed = !!(lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500);
+          return (
+            <div className={`p-3 rounded-xl border flex items-center justify-between backdrop-blur-md transition-all duration-300 ${
+              isSkillRecentlyUsed
+                ? 'bg-purple-950/90 border-purple-400 ring-2 ring-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] scale-[1.02]'
+                : 'bg-black/60 border-purple-500/40'
+            }`}>
+              <div>
+                <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <Zap size={11} /> {GAME_THEME.skillSlot1Label}
+                </div>
+                <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
+                  {skill1Obj ? skill1Obj.name : 'Nenhuma Habilidade Equipada'}
+                </div>
+              </div>
+              {isSkillRecentlyUsed ? (
+                <span className="text-[11px] font-black text-purple-200 bg-purple-900 px-2.5 py-1 rounded-lg border border-purple-400 shadow-md animate-bounce">
+                  ⚡ DISPARADA!
+                </span>
+              ) : skill1Cooldown > 0 ? (
+                <span className="text-xs font-mono bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500 font-bold">
+                  {skill1Cooldown.toFixed(1)}s
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md">
+                  PRONTO
+                </span>
+              )}
             </div>
-          </div>
-          {skill1Cooldown > 0 ? (
-            <span className="text-xs font-mono bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500 font-bold">
-              {skill1Cooldown.toFixed(1)}s
-            </span>
-          ) : (
-            <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md">
-              PRONTO
-            </span>
-          )}
-        </div>
+          );
+        })()}
 
-        <div className="bg-black/60 p-3 rounded-xl border border-amber-500/40 flex items-center justify-between backdrop-blur-md">
-          <div>
-            <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">{GAME_THEME.skillSlot2Label}</div>
-            <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
-              {skill2Obj ? skill2Obj.name : 'Nenhuma Bankai Equipada'}
+        {/* Slot 2: Bankai */}
+        {(() => {
+          const isBankaiActive = !!activeBuff;
+          const isBankaiJustFired = !!(lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2000);
+          return (
+            <div className={`p-3 rounded-xl border flex items-center justify-between backdrop-blur-md transition-all duration-300 ${
+              isBankaiActive || isBankaiJustFired
+                ? 'bg-gradient-to-r from-amber-950/90 via-black to-red-950/90 border-amber-400 ring-2 ring-amber-400/90 shadow-[0_0_25px_rgba(245,158,11,0.8)] animate-pulse'
+                : 'bg-black/60 border-amber-500/40'
+            }`}>
+              <div>
+                <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <Flame size={11} /> {GAME_THEME.skillSlot2Label}
+                </div>
+                <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
+                  {skill2Obj ? skill2Obj.name : 'Nenhuma Bankai Equipada'}
+                </div>
+              </div>
+              {isBankaiActive ? (
+                <span className="text-[11px] font-black text-amber-300 bg-amber-950 px-2.5 py-1 rounded-lg border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
+                  🔥 ATIVA ({activeBuff.durationLeft.toFixed(1)}s)
+                </span>
+              ) : skill2Cooldown > 0 ? (
+                <span className="text-xs font-mono bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500 font-bold">
+                  {skill2Cooldown.toFixed(1)}s
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md animate-pulse">
+                  PRONTO
+                </span>
+              )}
             </div>
-          </div>
-          {skill2Cooldown > 0 ? (
-            <span className="text-xs font-mono bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500 font-bold">
-              {skill2Cooldown.toFixed(1)}s
-            </span>
-          ) : (
-            <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md animate-pulse">
-              PRONTO
-            </span>
-          )}
-        </div>
+          );
+        })()}
       </div>
 
       {/* Log de Batalha Minimizável */}

@@ -6,10 +6,10 @@ import type { Difficulty } from '../types/game';
 import { MapPin, Lock, CheckCircle2, Trophy, ShieldAlert, Swords, Skull, Flame, Sparkles } from 'lucide-react';
 
 const difficultiesList: { id: Difficulty; name: string; mult: string; badge: string; color: string }[] = [
-  { id: 'normal', name: 'Normal', mult: '1.0x Stats Inimigos', badge: 'Iniciante (Dia 1-2)', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
-  { id: 'hard', name: 'Hard', mult: '8.5x Stats Inimigos', badge: 'Intermediário (Dia 3-5)', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
-  { id: 'nightmare', name: 'Nightmare', mult: '65.0x Stats Inimigos', badge: 'Veterano (Dia 6-9)', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
-  { id: 'hell', name: 'Hell (Transcendente)', mult: '500.0x Stats Inimigos', badge: 'Supremo (Dia 10-14)', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
+  { id: 'normal', name: 'Normal', mult: '1.0x Status', badge: 'Iniciante (Dia 1-2)', color: 'border-slate-700 bg-slate-900/60 text-slate-300' },
+  { id: 'hard', name: 'Hard', mult: '8.5x Status', badge: 'Intermediário (Dia 3-5)', color: 'border-cyan-500/50 bg-cyan-950/60 text-cyan-300' },
+  { id: 'nightmare', name: 'Nightmare', mult: '65x Status', badge: 'Veterano (Dia 6-9)', color: 'border-purple-500/50 bg-purple-950/60 text-purple-300' },
+  { id: 'hell', name: 'Hell (Transcendente)', mult: '500x Status', badge: 'Supremo (Dia 10-14)', color: 'border-red-500/60 bg-red-950/80 text-red-400 font-bold' },
 ];
 
 export const WorldMapPanel: React.FC = () => {
@@ -50,10 +50,10 @@ export const WorldMapPanel: React.FC = () => {
           </div>
 
           <h3 className="text-sm sm:text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-white flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 truncate">
-            <MapPin className="text-amber-400 shrink-0" size={18} /> Mundos Espirituais
+            <MapPin className="text-amber-400 shrink-0" size={18} /> Mapas
           </h3>
           <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 max-w-xl truncate sm:whitespace-normal">
-            Enfrente a horda e derrote o Boss no Estágio 10 para conquistar a vitória!
+            Derrote o Boss da Fase 10 para liberar o próximo mapa!
           </p>
         </div>
 
@@ -73,10 +73,10 @@ export const WorldMapPanel: React.FC = () => {
       <div>
         <div className="flex items-center justify-between mb-1.5 sm:mb-3">
           <h4 className="text-[10px] sm:text-xs text-slate-300 font-bold uppercase tracking-wider flex items-center gap-1">
-            <Trophy size={13} className="text-amber-400 shrink-0" /> Dificuldades Globais
+            <Trophy size={13} className="text-amber-400 shrink-0" /> Dificuldades
           </h4>
           <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono hidden sm:block">
-            Derrote o Boss Supremo para desbloquear
+            Derrote o Boss final para liberar
           </span>
         </div>
 
@@ -123,7 +123,7 @@ export const WorldMapPanel: React.FC = () => {
       {/* Biomes List */}
       <div>
         <h4 className="text-[10px] sm:text-xs text-cyan-400 font-bold uppercase tracking-wider mb-2 sm:mb-3 flex items-center gap-1.5">
-          <Swords size={13} /> Biomas Espirituais ({BIOMES_CATALOG.length} Regiões)
+          <Swords size={13} /> Regiões ({BIOMES_CATALOG.length})
         </h4>
 
         <div className="grid grid-cols-1 gap-2.5 sm:gap-4">
@@ -201,7 +201,7 @@ export const WorldMapPanel: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <div className="text-[8px] sm:text-[9px] text-red-400 font-mono uppercase tracking-wider font-bold flex items-center gap-1">
-                        <Skull size={9} /> Boss Estágio 10
+                        <Skull size={9} /> Boss (Fase 10)
                       </div>
                       <div className="text-xs font-extrabold text-white truncate">{biome.boss.name}</div>
                       <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono truncate">
@@ -216,12 +216,12 @@ export const WorldMapPanel: React.FC = () => {
                       <>
                         <span className="text-slate-400 font-mono">Progresso:</span>
                         <span className="text-amber-400 font-bold font-mono text-xs sm:text-sm">
-                          {isCurrent ? `Estágio ${biomeStage} / 10` : '10 / 10 (Concluído)'}
+                          {isCurrent ? `Fase ${biomeStage} / 10` : '10 / 10 (Concluído)'}
                         </span>
                       </>
                     ) : (
                       <div className="flex items-center gap-1 text-[10px] sm:text-xs text-red-400 font-semibold w-full justify-center">
-                        <ShieldAlert size={12} /> Bioma Bloqueado
+                        <ShieldAlert size={12} /> Bloqueado
                       </div>
                     )}
                   </div>

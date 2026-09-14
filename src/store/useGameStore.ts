@@ -289,13 +289,12 @@ const executeSkill = (
     healAmount = Math.round(calc.hp * skill.healPct);
   }
 
-  const emoji = slotLabel === 'BANKAI' ? '🔥' : '💥';
-  const aoeLabel = skill.isAoE ? 'ÁREA' : 'Single';
+  const emoji = slotLabel === 'BANKAI' ? '🔥' : '⚡';
   
   return {
     log: {
       id: uid(`log_${slotLabel.toLowerCase()}`),
-      text: `${emoji} [${slotLabel} ${aoeLabel}] ${skill.name} causou ${skillDamage} de dano em ${targetsCount} inimigo(s)!${healAmount > 0 ? ` Curou ${healAmount} HP!` : ''}`,
+      text: `${emoji} ${skill.name} causou ${skillDamage} de dano${targetsCount > 1 ? ` em ${targetsCount} inimigos` : ''}!${healAmount > 0 ? ` Curou +${healAmount} HP!` : ''}`,
       type: 'skill',
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -408,7 +407,7 @@ export const useGameStore = create<GameState>()(
   logs: [
     {
       id: 'log_welcome',
-      text: '⚔️ Bem-vindo ao Soul Ascension! Seu combate autônomo iniciou na Cidade de Karakura.',
+      text: '⚔️ Começando a jornada em Karakura!',
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -431,7 +430,7 @@ export const useGameStore = create<GameState>()(
         const nextEnemies = spawnEnemiesForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
         const recoveryLog: BattleLogMessage = {
           id: uid('log_respawn'),
-          text: `⚡ Reiatsu restaurada! Seu Shinigami recuperou o HP e voltou ao combate na Fase ${fallbackStage}!`,
+          text: `⚡ Recuperado! Voltando pra Fase ${fallbackStage}.`,
           type: 'system',
           timestamp: new Date().toLocaleTimeString(),
         };
@@ -569,7 +568,7 @@ export const useGameStore = create<GameState>()(
           enemyDmgPerTick = Math.round(bossSkillDmg * deltaTimeSec);
           logsToAdd.push({
             id: uid('log_boss_skill'),
-            text: `⚠️ [BOSS HABILIDADE] ${enemy.name} desferiu um Golpe Perfurante de Reiatsu! causou ${enemyDmgPerTick} de dano!`,
+            text: `⚠️ [BOSS] ${enemy.name} usou golpe especial! Causou ${enemyDmgPerTick} de dano.`,
             type: 'system',
             timestamp: new Date().toLocaleTimeString(),
           });
@@ -642,7 +641,7 @@ export const useGameStore = create<GameState>()(
       if (matDrops.mat1 > 0 || matDrops.mat2 > 0 || matDrops.mat3 > 0) {
         logsToAdd.push({
           id: uid('log_mat_drop'),
-          text: `⚙️ MATERIAIS: +${matDrops.mat1} Reishi, +${matDrops.mat2} Minério${matDrops.mat3 > 0 ? `, +${matDrops.mat3} Essência` : ''}`,
+          text: `⚙️ Materiais: +${matDrops.mat1} Reishi, +${matDrops.mat2} Minério${matDrops.mat3 > 0 ? `, +${matDrops.mat3} Essência` : ''}`,
           type: 'loot',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -653,7 +652,7 @@ export const useGameStore = create<GameState>()(
         newStats.bossKeys = (newStats.bossKeys || 0) + 1;
         logsToAdd.push({
           id: uid('log_boss_key'),
-          text: `🗝️ CHAVE DO BOSS DROPADA! Um Hollow derrubou 1x Chave do Boss! (Total: ${newStats.bossKeys})`,
+          text: `🗝️ Drop: Chave do Boss! (Total: ${newStats.bossKeys})`,
           type: 'loot',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -668,7 +667,7 @@ export const useGameStore = create<GameState>()(
 
         logsToAdd.push({
           id: uid('log_lvl'),
-          text: `🎉 LEVEL UP! Você alcançou o Nível ${newStats.level}! (+3 Pontos de Atributo)`,
+          text: `🎉 Level Up! Nível ${newStats.level}! (+3 pontos)`,
           type: 'system',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -702,7 +701,7 @@ export const useGameStore = create<GameState>()(
         newInventory.push(newEquip);
         logsToAdd.push({
           id: uid('log_loot'),
-          text: `💎 LOOT DROP! Você encontrou: ${newEquip.name}!`,
+          text: `💎 Novo Drop: ${newEquip.name}!`,
           type: 'loot',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -718,7 +717,7 @@ export const useGameStore = create<GameState>()(
       if (wasBossDefeated || state.biomeStage === 10) {
         logsToAdd.push({
           id: uid('log_boss_win'),
-          text: `🏆 BOSS DERROTADO! Você concluiu as 10 Fases de ${state.currentBiomeId.toUpperCase()}!`,
+          text: `🏆 Boss derrotado! Concluiu as 10 fases!`,
           type: 'victory',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -733,7 +732,7 @@ export const useGameStore = create<GameState>()(
           }
           logsToAdd.push({
             id: uid('log_unlock_biome'),
-            text: `🔓 NOVO BIOMA DESBLOQUEADO: Avançando para ${nextBiomeObj.name}!`,
+            text: `🔓 Novo mapa liberado: ${nextBiomeObj.name}!`,
             type: 'system',
             timestamp: new Date().toLocaleTimeString(),
           });
@@ -749,7 +748,7 @@ export const useGameStore = create<GameState>()(
               newUnlockedDiffs.push(nextDiff);
               logsToAdd.push({
                 id: uid('log_unlock_diff'),
-                text: `🔥 DIFICULDADE DESBLOQUEADA! A dificuldade ${nextDiff.toUpperCase()} agora está acessível!`,
+                text: `🔥 Nova dificuldade liberada: ${nextDiff.toUpperCase()}!`,
                 type: 'victory',
                 timestamp: new Date().toLocaleTimeString(),
               });
@@ -769,7 +768,7 @@ export const useGameStore = create<GameState>()(
       if (state.consecutiveDeaths > 0) {
         logsToAdd.push({
           id: uid('log_reset_deaths'),
-          text: `✨ Vitória conquistada! Sequência de derrotas zerada.`,
+          text: `✨ Vitória! Sequência de derrotas zerada.`,
           type: 'victory',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -809,7 +808,7 @@ export const useGameStore = create<GameState>()(
 
       logsToAdd.push({
         id: uid('log_defeat'),
-        text: `💀 Derrota #${nextConsecutiveDeaths}! Recuperando Reiatsu em ${deathTimer.toFixed(1)}s (Penalidade ativa)...`,
+        text: `💀 Derrota #${nextConsecutiveDeaths}! Revivendo em ${deathTimer.toFixed(1)}s...`,
         type: 'system',
         timestamp: new Date().toLocaleTimeString(),
       });
@@ -817,7 +816,7 @@ export const useGameStore = create<GameState>()(
       if (shouldDisableAuto) {
         logsToAdd.push({
           id: uid('log_auto_off'),
-          text: `⚠️ 3 DERROTAS SEGUIDAS! O avanço de Horda Contínua foi DESATIVADO automaticamente para sua proteção.`,
+          text: `⚠️ 3 derrotas seguidas! O avanço automático foi pausado.`,
           type: 'system',
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -963,7 +962,7 @@ export const useGameStore = create<GameState>()(
 
     const newLog: BattleLogMessage = {
       id: uid('log_salvage'),
-      text: `♻️ ITEM DESMONTADO: ${item.name} gerou +${mat1} Mat.1, +${mat2} Mat.2!`,
+      text: `♻️ Desmontou ${item.name}: +${mat1} Reishi, +${mat2} Minério${mat3 > 0 ? `, +${mat3} Essência` : ''}`,
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     };
@@ -1003,7 +1002,7 @@ export const useGameStore = create<GameState>()(
 
     const newLog: BattleLogMessage = {
       id: uid('log_salvage_bulk'),
-      text: `♻️ RECICLAGEM EM LOTE: ${targetItems.length} itens ${rarityLabels[rarity]} geraram +${totalMat1} Reishi, +${totalMat2} Minério${totalMat3 > 0 ? `, +${totalMat3} Essência` : ''}!`,
+      text: `♻️ Desmontou ${targetItems.length} itens (${rarityLabels[rarity]}): +${totalMat1} Reishi, +${totalMat2} Minério${totalMat3 > 0 ? `, +${totalMat3} Essência` : ''}`,
       type: 'loot',
       timestamp: new Date().toLocaleTimeString(),
     };
@@ -1052,7 +1051,7 @@ export const useGameStore = create<GameState>()(
 
     const newLog: BattleLogMessage = {
       id: uid('log_craft'),
-      text: `🔨 FORJA CONCLUÍDA! Você forjou com sucesso: ${newEquip.name}!`,
+      text: `🔨 Forjou: ${newEquip.name}!`,
       type: 'loot',
       timestamp: new Date().toLocaleTimeString(),
     };
@@ -1185,7 +1184,7 @@ export const useGameStore = create<GameState>()(
     if (stats.bossKeys < 1) {
       const noKeyLog: BattleLogMessage = {
         id: uid('log_no_key'),
-        text: '⚠️ Você precisa de pelo menos 1x Chave do Boss 🗝️ para desafiar o Boss! Derrote Hollows nas Fases 1-9 para obter chaves.',
+        text: '⚠️ Precisa de 1 Chave do Boss 🗝️! Derrote Hollows nas fases 1 a 9 para pegar.',
         type: 'system',
         timestamp: new Date().toLocaleTimeString(),
       };
@@ -1195,7 +1194,7 @@ export const useGameStore = create<GameState>()(
 
     const bossLog: BattleLogMessage = {
       id: uid('log_enter_boss'),
-      text: `🗝️ ENTRANDO NO BOSS! 1x Chave do Boss consumida. Enfrente o Boss da Fase 10!`,
+      text: `🗝️ Entrando no Boss! (-1 🗝️). Boa sorte!`,
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     };

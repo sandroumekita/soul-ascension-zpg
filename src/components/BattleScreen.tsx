@@ -171,7 +171,7 @@ export const BattleScreen: React.FC = () => {
               value={currentBiomeId}
               onChange={(e) => changeBiome(e.target.value)}
               className="bg-slate-950 text-amber-300 font-extrabold text-[11px] sm:text-sm rounded-lg px-2 py-1 pr-6 border border-amber-500/50 hover:border-amber-400 focus:outline-none cursor-pointer appearance-none truncate w-full shadow-inner"
-              title="Trocar Mapa / Bioma"
+              title="Trocar Mapa"
             >
               {BIOMES_CATALOG.map((b) => {
                 const isUnlocked = unlockedBiomes.includes(b.id);
@@ -201,7 +201,7 @@ export const BattleScreen: React.FC = () => {
           {/* Contador de Chaves do Boss */}
           <div
             className="flex items-center gap-0.5 text-[9px] sm:text-xs px-1.5 py-1 rounded-lg bg-black/70 border border-amber-500/40 text-amber-300 font-mono font-bold shrink-0 shadow-sm"
-            title={`Chaves do Boss disponíveis: ${bossKeys} (Derrote Hollows para coletar mais)`}
+            title={`Chaves do Boss: ${bossKeys} (Cai de Hollows)`}
           >
             <span>🗝️</span>
             <span>{bossKeys}</span>
@@ -214,7 +214,7 @@ export const BattleScreen: React.FC = () => {
                 ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
                 : 'bg-amber-950/80 border-amber-500 text-amber-300'
             }`}
-            title="Alternar entre avançar horda ou farmar no mesmo estágio"
+            title="Avançar automático ou ficar na mesma fase"
           >
             {autoAdvance ? '🔄 Auto' : '🛑 Fixo'}
           </button>
@@ -230,7 +230,7 @@ export const BattleScreen: React.FC = () => {
               title={
                 bossKeys > 0
                   ? `Desafiar Boss da Fase 10! (Consome 1 Chave - Você possui ${bossKeys})`
-                  : 'Você precisa de 1x Chave do Boss! Derrote Hollows nas Fases 1-9 para coletar.'
+                  : 'Precisa de 1 Chave! Derrote Hollows nas Fases 1-9 para pegar.'
               }
             >
               <Skull size={12} className={bossKeys > 0 ? 'text-amber-200 animate-bounce shrink-0' : 'text-slate-500 shrink-0'} />
@@ -270,7 +270,7 @@ export const BattleScreen: React.FC = () => {
                     ? 'bg-gradient-to-r from-amber-500 to-red-600 border-white text-white scale-110 shadow-lg shadow-amber-500/50 animate-pulse'
                     : 'bg-slate-950 border-slate-800 text-slate-600 hover:border-slate-600'
                 }`}
-                title={`Ir para o Estágio ${stageNum}`}
+                title={`Ir para a Fase ${stageNum}`}
               >
                 {stageNum === 10 ? '👑' : stageNum}
               </button>
@@ -562,7 +562,7 @@ export const BattleScreen: React.FC = () => {
                   onChange={(e) => equipSkill(e.target.value, 1)}
                   style={{ maxWidth: '100%' }}
                   className="w-full max-w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-[9px] sm:text-xs rounded-lg px-1.5 py-1 border border-purple-500/50 hover:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer transition truncate pr-5 appearance-none shadow-inner"
-                  title="Clique para trocar a Habilidade Ativa / Hadō"
+                  title="Trocar Habilidade"
                 >
                   {slot1Skills.map((s) => {
                     const isUnlocked = !!ownedSkills[s.id]?.unlocked;
@@ -648,7 +648,7 @@ export const BattleScreen: React.FC = () => {
                   onChange={(e) => equipSkill(e.target.value, 2)}
                   style={{ maxWidth: '100%' }}
                   className="w-full max-w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-[9px] sm:text-xs rounded-lg px-1.5 py-1 border border-amber-500/50 hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer transition truncate pr-5 appearance-none shadow-inner"
-                  title="Clique para trocar a Bankai"
+                  title="Trocar Bankai"
                 >
                   {slot2Skills.map((s) => {
                     const isUnlocked = !!ownedSkills[s.id]?.unlocked;
@@ -699,7 +699,7 @@ export const BattleScreen: React.FC = () => {
         >
           <span className="flex items-center gap-2">
             {showLogs ? <EyeOff size={14} className="text-amber-400" /> : <Eye size={14} className="text-slate-400" />}
-            Log de Batalha {showLogs ? '(Aberto)' : '(Minimizado)'}
+            Log de Batalha {showLogs ? '(Aberto)' : '(Oculto)'}
           </span>
           <span className="flex items-center gap-1 text-[11px] text-slate-400">
             {showLogs ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -712,7 +712,7 @@ export const BattleScreen: React.FC = () => {
             <div className="flex items-center gap-1 p-2 bg-slate-950/80 border-b border-white/5 overflow-x-auto">
               {[
                 { id: 'all', label: 'Todos' },
-                { id: 'loot', label: '💎 Drops / Loot' },
+                { id: 'loot', label: '💎 Drops' },
                 { id: 'skill', label: '⚡ Habilidades' },
                 { id: 'system', label: '📜 Sistema' },
               ].map((f) => (
@@ -743,7 +743,7 @@ export const BattleScreen: React.FC = () => {
                 if (filtered.length === 0) {
                   return (
                     <div className="text-slate-500 text-[10px] text-center italic py-4">
-                      Nenhum registro encontrado nesta categoria.
+                      Nenhum registro por aqui.
                     </div>
                   );
                 }

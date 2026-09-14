@@ -39,10 +39,10 @@ export const GachaShopPanel: React.FC = () => {
           </div>
           <div className="min-w-0">
             <h3 className="text-sm sm:text-lg font-black text-purple-300 truncate">
-              Portal de Invocação Espiritual
+              Invocação (Gacha)
             </h3>
             <p className="text-[10px] sm:text-xs text-gray-300 truncate">
-              Invoque Habilidades e {GAME_THEME.weaponTerm}s com {GAME_THEME.premiumCurrencyName}.
+              Invoque habilidades e {GAME_THEME.weaponTerm}s com {GAME_THEME.premiumCurrencyName}.
             </p>
           </div>
         </div>
@@ -96,9 +96,9 @@ export const GachaShopPanel: React.FC = () => {
             <div className="p-2.5 sm:p-4 bg-purple-900/40 rounded-full border border-purple-400/60 text-purple-300 w-fit mx-auto mb-1.5 sm:mb-3 shadow-lg group-hover:scale-110 transition">
               <Zap size={22} className="sm:w-8 sm:h-8" />
             </div>
-            <h4 className="font-black text-xs sm:text-base text-purple-200">Grimório dos Transcendentes</h4>
+            <h4 className="font-black text-xs sm:text-base text-purple-200">Habilidades & Bankais</h4>
             <p className="text-[10px] sm:text-xs text-gray-300 mt-0.5 sm:mt-1.5 max-w-xs line-clamp-2 sm:line-clamp-none">
-              Invoque Habilidades Especiais e Bankais Lendárias.
+              Ganhe novas habilidades e Bankais.
             </p>
           </div>
 
@@ -115,11 +115,11 @@ export const GachaShopPanel: React.FC = () => {
             className="w-full py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-purple-950/50"
           >
             {isSummoning ? <RefreshCw size={14} className="animate-spin" /> : <Gem size={14} />} 
-            Invocar Habilidade (50 {GAME_THEME.premiumCurrencyName})
+            Invocar (50 💎)
           </button>
         </div>
 
-        {/* Banner 2: Baú Místico de Equipamentos */}
+        {/* Banner 2: Equipamentos */}
         <div className="bg-gradient-to-b from-amber-950/70 via-slate-950 to-black p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-amber-500/50 shadow-xl flex flex-col justify-between items-center text-center gap-2.5 sm:gap-4 hover:border-amber-400 transition relative overflow-hidden group">
           <div className="absolute top-0 right-0 px-2 py-0.5 sm:px-3 sm:py-1 bg-amber-900/80 text-amber-200 text-[9px] sm:text-[10px] font-extrabold font-mono rounded-bl-lg sm:rounded-bl-xl border-l border-b border-amber-500">
             {GAME_THEME.weaponTerm.toUpperCase()}S
@@ -129,9 +129,9 @@ export const GachaShopPanel: React.FC = () => {
             <div className="p-2.5 sm:p-4 bg-amber-900/40 rounded-full border border-amber-400/60 text-amber-300 w-fit mx-auto mb-1.5 sm:mb-3 shadow-lg group-hover:scale-110 transition">
               <Gift size={22} className="sm:w-8 sm:h-8" />
             </div>
-            <h4 className="font-black text-xs sm:text-base text-amber-200">Baú Místico de {GAME_THEME.weaponTerm}</h4>
+            <h4 className="font-black text-xs sm:text-base text-amber-200">{GAME_THEME.weaponTerm}s</h4>
             <p className="text-[10px] sm:text-xs text-gray-300 mt-0.5 sm:mt-1.5 max-w-xs line-clamp-2 sm:line-clamp-none">
-              Garante 1 {GAME_THEME.weaponTerm} de alta raridade.
+              Ganhe uma nova {GAME_THEME.weaponTerm} para o seu Shinigami.
             </p>
           </div>
 
@@ -148,7 +148,7 @@ export const GachaShopPanel: React.FC = () => {
             className="w-full py-2 sm:py-3 bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white font-extrabold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-amber-950/50"
           >
             {isSummoning ? <RefreshCw size={14} className="animate-spin" /> : <Gem size={14} />} 
-            Abrir Baú Místico (50 {GAME_THEME.premiumCurrencyName})
+            Invocar (50 💎)
           </button>
         </div>
       </div>

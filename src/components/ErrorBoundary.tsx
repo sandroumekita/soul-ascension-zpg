@@ -28,9 +28,9 @@ export class ErrorBoundary extends React.Component<
         <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
           <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-8 max-w-md text-center shadow-2xl">
             <div className="text-5xl mb-4">⚠️</div>
-            <h2 className="text-xl font-extrabold text-red-400 mb-2">Erro Inesperado</h2>
+            <h2 className="text-xl font-extrabold text-red-400 mb-2">Ops! Algo deu errado</h2>
             <p className="text-sm text-slate-400 mb-4">
-              Algo deu errado no Soul Ascension. Tente recarregar a página.
+              Ocorreu um erro no jogo. Tente recarregar:
             </p>
             <p className="text-xs text-red-300/70 bg-red-950/40 p-3 rounded-lg border border-red-800/40 font-mono mb-4 text-left break-all">
               {this.state.error?.message || 'Erro desconhecido'}
@@ -40,7 +40,7 @@ export class ErrorBoundary extends React.Component<
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition text-sm"
               >
-                🔄 Recarregar Página
+                🔄 Recarregar
               </button>
               <button
                 onClick={() => {
@@ -49,7 +49,7 @@ export class ErrorBoundary extends React.Component<
                 }}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg transition text-sm border border-slate-700"
               >
-                🗑️ Resetar Dados
+                🗑️ Resetar Jogo
               </button>
             </div>
           </div>

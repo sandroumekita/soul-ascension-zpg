@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { Save, Copy, Check, Upload, Trash2, X, ShieldCheck } from 'lucide-react';
 
@@ -30,13 +30,13 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
   const handleImport = () => {
     setImportError(null);
     if (!importCode.trim()) {
-      setImportError('Por favor, cole um código de save válido.');
+      setImportError('Cole um código de save válido.');
       return;
     }
 
     const success = importSaveData(importCode);
     if (!success) {
-      setImportError('Código de save inválido ou corrompido.');
+      setImportError('Código inválido ou corrompido.');
     }
   };
 
@@ -57,8 +57,8 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
             <Save size={22} />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-amber-300">Save & Backup Local</h3>
-            <p className="text-xs text-gray-400">Armazenamento permanente no navegador.</p>
+            <h3 className="text-base font-extrabold text-amber-300">Salvar Jogo</h3>
+            <p className="text-xs text-gray-400">Seu progresso fica salvo no navegador.</p>
           </div>
         </div>
 
@@ -66,16 +66,16 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
         <div className="bg-slate-950/80 p-3 rounded-xl border border-emerald-500/30 flex items-center gap-2.5">
           <ShieldCheck size={20} className="text-emerald-400 shrink-0" />
           <div className="text-xs text-slate-300">
-            <strong className="text-emerald-400 font-bold block">Auto-Save Ativo (localStorage)</strong>
-            Seu progresso é gravado automaticamente a cada segundo no dispositivo.
+            <strong className="text-emerald-400 font-bold block">Salvamento Automático Ativo</strong>
+            Seu progresso é salvo automaticamente aqui no seu aparelho.
           </div>
         </div>
 
         {/* Export Save */}
         <div className="bg-black/40 p-3.5 rounded-xl border border-white/10 flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-300">Exportar Save (Backup)</span>
+          <span className="text-xs font-bold text-slate-300">Exportar Save</span>
           <p className="text-[11px] text-gray-400 leading-relaxed">
-            Copie o código para transferir seu progresso para outro celular ou computador:
+            Copie o código para levar seu progresso para outro aparelho:
           </p>
           <button
             onClick={handleCopy}
@@ -86,13 +86,13 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
             }`}
           >
             {copied ? <Check size={15} /> : <Copy size={15} />}
-            {copied ? 'Código Copiado com Sucesso!' : 'Copiar Código de Save'}
+            {copied ? 'Código Copiado!' : 'Copiar Código'}
           </button>
         </div>
 
         {/* Import Save */}
         <div className="bg-black/40 p-3.5 rounded-xl border border-white/10 flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-300">Importar Save</span>
+          <span className="text-xs font-bold text-slate-300">Carregar Save</span>
           <input
             type="text"
             value={importCode}
@@ -107,18 +107,18 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
             onClick={handleImport}
             className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer hover:scale-[1.01]"
           >
-            <Upload size={14} /> Restaurar Progresso
+            <Upload size={14} /> Carregar Progresso
           </button>
         </div>
 
         {/* Reset Save */}
         <div className="flex justify-between items-center pt-1 border-t border-white/5">
-          <span className="text-[10px] text-gray-500">Deseja reiniciar?</span>
+          <span className="text-[10px] text-gray-500">Quer começar de novo?</span>
           <button
             onClick={resetProgressSave}
             className="text-xs text-red-400/80 hover:text-red-400 transition flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-red-950/40 cursor-pointer"
           >
-            <Trash2 size={13} /> Reiniciar Progresso
+            <Trash2 size={13} /> Resetar Jogo
           </button>
         </div>
       </div>

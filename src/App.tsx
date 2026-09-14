@@ -62,7 +62,7 @@ export const App: React.FC = () => {
           <button
             onClick={() => setIsSaveModalOpen(true)}
             className="text-[10px] sm:text-xs text-amber-300 hover:text-amber-200 transition flex items-center gap-1 bg-amber-950/50 hover:bg-amber-900/60 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-amber-500/40 hover:border-amber-400 cursor-pointer font-bold shadow"
-            title="Salvar, Exportar ou Importar Progresso"
+            title="Salvar Jogo"
           >
             <span>💾</span> <span className="hidden xs:inline">Save</span>
           </button>

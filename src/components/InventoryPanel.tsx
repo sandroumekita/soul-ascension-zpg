@@ -27,9 +27,9 @@ export const InventoryPanel: React.FC = () => {
           </div>
           <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-extrabold text-amber-400 truncate">
-              Arsenal Espiritual & Inventário
+              Inventário
             </h3>
-            <p className="text-[10px] sm:text-xs text-gray-400 truncate">Gerencie {GAME_THEME.weaponTerm}s e recicle sobras.</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 truncate">Equipe suas {GAME_THEME.weaponTerm} e recicle o que sobrou.</p>
           </div>
         </div>
 
@@ -76,10 +76,10 @@ export const InventoryPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Display do Item Equipado com Visual de Slot Lendário */}
+      {/* Hero Display do Item Equipado */}
       <div className="bg-gradient-to-r from-slate-950 via-amber-950/30 to-slate-950 p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-amber-500/50 shadow-xl relative overflow-hidden">
         <div className="text-[10px] sm:text-xs text-amber-400 font-extrabold uppercase tracking-widest mb-2 sm:mb-3 flex items-center gap-1.5">
-          <PackageCheck size={14} className="shrink-0" /> {GAME_THEME.weaponTerm} Equipada no Encaixe Principal
+          <PackageCheck size={14} className="shrink-0" /> {GAME_THEME.weaponTerm} Equipada
         </div>
 
         {equippedWeapon ? (
@@ -94,7 +94,7 @@ export const InventoryPanel: React.FC = () => {
                 </span>
               </div>
               <div className="text-[10px] sm:text-xs text-gray-300 flex flex-wrap gap-2 sm:gap-4 font-mono mt-1">
-                <span>ATK Bônus: <strong className="text-red-400 font-extrabold">+{equippedWeapon.atk}</strong></span>
+                <span>ATK: <strong className="text-red-400 font-extrabold">+{equippedWeapon.atk}</strong></span>
                 <span>Crítico: <strong className="text-amber-400 font-extrabold">+{(equippedWeapon.critChance * 100).toFixed(0)}%</strong></span>
                 <span>Valor: <strong className="text-emerald-400 font-extrabold">{equippedWeapon.sellPrice}</strong></span>
               </div>
@@ -104,12 +104,12 @@ export const InventoryPanel: React.FC = () => {
               onClick={() => unequipSlot('weapon')}
               className="px-3 py-1 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 text-gray-200 font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl border border-gray-600 transition hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap self-start sm:self-auto"
             >
-              Desequipar Arma
+              Desequipar
             </button>
           </div>
         ) : (
           <div className="text-[11px] sm:text-xs text-gray-500 italic p-4 sm:p-6 text-center bg-slate-950/60 rounded-xl border border-dashed border-gray-800">
-            Nenhuma {GAME_THEME.weaponTerm} equipada no momento. Selecione uma abaixo!
+            Nenhuma {GAME_THEME.weaponTerm} equipada. Escolha uma abaixo!
           </div>
         )}
       </div>

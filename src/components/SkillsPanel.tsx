@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { SKILLS_CATALOG, RARITY_COLORS } from '../data/gameCatalog';
-import { GAME_THEME } from '../config/themeConfig';
 import { Check, Zap, Flame, Filter } from 'lucide-react';
 
 export const SkillsPanel: React.FC = () => {
@@ -23,22 +22,21 @@ export const SkillsPanel: React.FC = () => {
           </div>
           <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-extrabold text-purple-400 truncate">
-              Grimório de Habilidades Espirituais
+              Habilidades & Bankai
             </h3>
-            <p className="text-[10px] sm:text-xs text-gray-400 truncate">Equipe técnicas ativas e transformações supremas.</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 truncate">Escolha as habilidades do seu Shinigami.</p>
           </div>
         </div>
       </div>
 
-      {/* Hero Visual Display dos Slots Equipados (2 colunas no mobile para caber na primeira dobra) */}
+      {/* Hero Visual Display dos Slots Equipados */}
       <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {/* Card Slot 1 (Ativa) */}
         <div className={`p-2.5 sm:p-4 rounded-xl border backdrop-blur-md flex flex-col justify-between transition relative overflow-hidden ${equippedSkill1 ? 'bg-gradient-to-r from-purple-950/70 to-slate-950 border-purple-500/60 shadow-lg' : 'bg-black/40 border-dashed border-gray-800'}`}>
           <div className="flex justify-between items-center mb-1 sm:mb-2 min-w-0 gap-1">
             <span className="text-[9px] sm:text-[11px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1 min-w-0">
               <Zap size={12} className="shrink-0" />
-              <span className="truncate hidden sm:inline">{GAME_THEME.skillSlot1Label}</span>
-              <span className="truncate sm:hidden">Slot 1 (Ativa)</span>
+              <span className="truncate">Habilidade</span>
             </span>
             {equippedSkill1 && (
               <span className="text-[8px] sm:text-[10px] bg-purple-900/80 border border-purple-500 text-purple-200 px-1.5 py-0.2 rounded font-mono font-bold shrink-0">
@@ -70,13 +68,12 @@ export const SkillsPanel: React.FC = () => {
           )}
         </div>
 
-        {/* Card Slot 2 (Ultimate / Bankai) */}
+        {/* Card Slot 2 (Bankai) */}
         <div className={`p-2.5 sm:p-4 rounded-xl border backdrop-blur-md flex flex-col justify-between transition relative overflow-hidden ${equippedSkill2 ? 'bg-gradient-to-r from-amber-950/70 to-slate-950 border-amber-500/60 shadow-lg' : 'bg-black/40 border-dashed border-gray-800'}`}>
           <div className="flex justify-between items-center mb-1 sm:mb-2 min-w-0 gap-1">
             <span className="text-[9px] sm:text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1 min-w-0">
               <Flame size={12} className="shrink-0" />
-              <span className="truncate hidden sm:inline">{GAME_THEME.skillSlot2Label}</span>
-              <span className="truncate sm:hidden">Slot 2 (Bankai)</span>
+              <span className="truncate">Bankai</span>
             </span>
             {equippedSkill2 && (
               <span className="text-[8px] sm:text-[10px] bg-amber-900/80 border border-amber-500 text-amber-200 px-1.5 py-0.2 rounded font-mono font-bold shrink-0">
@@ -113,7 +110,7 @@ export const SkillsPanel: React.FC = () => {
       {/* Barra de Filtros de Categoria */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
         <div className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Filter size={13} className="text-purple-400 shrink-0" /> Catálogo ({filteredSkills.length}):
+          <Filter size={13} className="text-purple-400 shrink-0" /> Habilidades ({filteredSkills.length}):
         </div>
 
         <div className="flex gap-1 overflow-x-auto max-w-full pb-1">
@@ -207,7 +204,7 @@ export const SkillsPanel: React.FC = () => {
               {/* Botões de Ação de Encaixe nos Slots */}
               {owned ? (
                 <div className="flex gap-1.5 justify-end shrink-0">
-                  {skill.slotType === 1 && (
+                    {skill.slotType === 1 && (
                     <button
                       onClick={() => equipSkill(skill.id, 1)}
                       className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition flex items-center gap-1 cursor-pointer shadow ${
@@ -216,7 +213,7 @@ export const SkillsPanel: React.FC = () => {
                           : 'bg-slate-800 hover:bg-purple-950 text-purple-300 border border-purple-500/50 hover:scale-105'
                       }`}
                     >
-                      {isEquippedSlot1 ? <Check size={13} /> : null} {isEquippedSlot1 ? 'Slot 1 Ativo' : 'Equipar Slot 1'}
+                      {isEquippedSlot1 ? <Check size={13} /> : null} {isEquippedSlot1 ? 'Equipada' : 'Equipar'}
                     </button>
                   )}
 
@@ -229,7 +226,7 @@ export const SkillsPanel: React.FC = () => {
                           : 'bg-slate-800 hover:bg-amber-950 text-amber-300 border border-amber-500/50 hover:scale-105'
                       }`}
                     >
-                      {isEquippedSlot2 ? <Check size={13} /> : null} {isEquippedSlot2 ? 'Bankai Ativa' : 'Equipar Slot 2'}
+                      {isEquippedSlot2 ? <Check size={13} /> : null} {isEquippedSlot2 ? 'Equipada' : 'Equipar'}
                     </button>
                   )}
                 </div>

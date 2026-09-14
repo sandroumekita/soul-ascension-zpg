@@ -30,9 +30,9 @@ export const CraftingPanel: React.FC = () => {
           </div>
           <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-extrabold text-amber-400 truncate">
-              Forja de Receitas {GAME_THEME.weaponTerm}
+              Forja
             </h3>
-            <p className="text-[10px] sm:text-xs text-gray-400 truncate">Forje armas com materiais acumulados.</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 truncate">Crie {GAME_THEME.weaponTerm}s usando seus materiais.</p>
           </div>
         </div>
       </div>
@@ -164,7 +164,7 @@ export const CraftingPanel: React.FC = () => {
                       : 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed opacity-60'
                   }`}
                 >
-                  <Hammer size={14} /> Forjar Item
+                  <Hammer size={14} /> Forjar
                 </button>
               </div>
             );

@@ -71,28 +71,28 @@ export const StatsPanel: React.FC = () => {
       {/* Resumo de Atributos Totais de Combate (DPS / Crítico / Equipamento) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
         <div className="bg-black/40 p-2 sm:p-3 rounded-lg sm:rounded-xl border border-red-500/30 flex flex-col">
-          <span className="text-[9px] sm:text-[10px] text-red-400 font-bold uppercase">DPS Estimado</span>
+          <span className="text-[9px] sm:text-[10px] text-red-400 font-bold uppercase">DPS</span>
           <span className="text-sm sm:text-lg font-mono font-extrabold text-white mt-0.5 sm:mt-1 flex items-center gap-1">
             <Flame size={14} className="text-amber-400 shrink-0" /> {calculatedDps}
           </span>
         </div>
 
         <div className="bg-black/40 p-2 sm:p-3 rounded-lg sm:rounded-xl border border-red-500/30 flex flex-col">
-          <span className="text-[9px] sm:text-[10px] text-red-400 font-bold uppercase">Ataque Total</span>
+          <span className="text-[9px] sm:text-[10px] text-red-400 font-bold uppercase">Ataque</span>
           <span className="text-sm sm:text-lg font-mono font-extrabold text-red-300 mt-0.5 sm:mt-1 flex items-center gap-1 truncate">
             <Swords size={14} className="shrink-0" /> {totalAtk} <span className="text-[9px] sm:text-[10px] text-gray-400 font-normal">({stats.baseAtk}+{weaponAtk})</span>
           </span>
         </div>
 
         <div className="bg-black/40 p-2 sm:p-3 rounded-lg sm:rounded-xl border border-amber-500/30 flex flex-col">
-          <span className="text-[9px] sm:text-[10px] text-amber-400 font-bold uppercase">Chance Crítica</span>
+          <span className="text-[9px] sm:text-[10px] text-amber-400 font-bold uppercase">Crítico</span>
           <span className="text-sm sm:text-lg font-mono font-extrabold text-amber-300 mt-0.5 sm:mt-1">
             🎯 {critPct.toFixed(0)}%
           </span>
         </div>
 
         <div className="bg-black/40 p-2 sm:p-3 rounded-lg sm:rounded-xl border border-blue-500/30 flex flex-col">
-          <span className="text-[9px] sm:text-[10px] text-blue-400 font-bold uppercase">Ataques / Seg</span>
+          <span className="text-[9px] sm:text-[10px] text-blue-400 font-bold uppercase">Velocidade</span>
           <span className="text-sm sm:text-lg font-mono font-extrabold text-blue-300 mt-0.5 sm:mt-1">
             ⚡ {stats.baseSpd.toFixed(2)}/s
           </span>
@@ -104,7 +104,7 @@ export const StatsPanel: React.FC = () => {
         <div className="flex items-center gap-2">
           <Sparkles size={18} className={stats.statPoints > 0 ? 'text-amber-300 animate-spin' : 'text-gray-500'} />
           <div className="flex sm:flex-col items-center sm:items-start gap-2 sm:gap-0">
-            <span className="text-[10px] sm:text-xs text-amber-300/80 uppercase tracking-wider font-mono">Pontos Disponíveis:</span>
+            <span className="text-[10px] sm:text-xs text-amber-300/80 uppercase tracking-wider font-mono">Pontos:</span>
             <span className="text-base sm:text-2xl font-extrabold font-mono text-amber-400">
               {stats.statPoints}
             </span>
@@ -145,7 +145,7 @@ export const StatsPanel: React.FC = () => {
                 <Zap size={16} className="sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">ATK (Ataque)</h4>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">Ataque (ATK)</h4>
                 <p className="hidden sm:block text-xs text-gray-400 mt-0.5">Dano base desferido.</p>
               </div>
             </div>
@@ -172,7 +172,7 @@ export const StatsPanel: React.FC = () => {
                 <Shield size={16} className="sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">DEF (Defesa)</h4>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">Defesa (DEF)</h4>
                 <p className="hidden sm:block text-xs text-gray-400 mt-0.5">Redução de dano.</p>
               </div>
             </div>
@@ -199,7 +199,7 @@ export const StatsPanel: React.FC = () => {
                 <Heart size={16} className="sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">HP (Vida)</h4>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">Vida (HP)</h4>
                 <p className="hidden sm:block text-xs text-gray-400 mt-0.5">Vida máxima.</p>
               </div>
             </div>
@@ -226,7 +226,7 @@ export const StatsPanel: React.FC = () => {
                 <Activity size={16} className="sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">SPD (Veloc.)</h4>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white truncate">Velocidade (SPD)</h4>
                 <p className="hidden sm:block text-xs text-gray-400 mt-0.5">Ataques por seg.</p>
               </div>
             </div>

@@ -393,24 +393,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     let hitAccum = state._hitAccumulator + hitsThisTick;
     let healAccum = state._healAccumulator;
 
-    // Process complete hits (crit rolls per whole hit)
+    // Process complete hits (rolls per full attack, respecting attack speed)
     let totalAutoAttackDmg = 0;
     while (hitAccum >= 1.0) {
       hitAccum -= 1.0;
-      // Multiplicative damage formula: ATK * (100 / (100 + DEF)) — DEF always relevant
+      // Multiplicative damage formula: ATK * (100 / (100 + DEF))
       const rawDamage = Math.max(1, Math.round(calc.atk * (100 / (100 + primaryEnemy.def))));
       const isCrit = Math.random() < calc.critChance;
       const hitDamage = isCrit ? Math.round(rawDamage * 1.8) : rawDamage;
       totalAutoAttackDmg += hitDamage;
     }
 
-    // Apply remaining fractional damage (no crit for partial hits)
-    if (hitAccum > 0 && totalAutoAttackDmg === 0) {
-      const rawDamage = Math.max(1, Math.round(calc.atk * (100 / (100 + primaryEnemy.def))));
-      totalAutoAttackDmg += Math.round(rawDamage * hitAccum);
+    if (totalAutoAttackDmg > 0) {
+      primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - totalAutoAttackDmg);
     }
-
-    primaryEnemy.currentHp = Math.max(0, primaryEnemy.currentHp - totalAutoAttackDmg);
 
     // Apply Lifesteal with float accumulator (50% vs mobs, 100% vs boss)
     if (newBuff && newBuff.lifestealPct > 0 && totalAutoAttackDmg > 0) {

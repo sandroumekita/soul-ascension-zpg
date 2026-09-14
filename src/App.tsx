@@ -23,67 +23,21 @@ export const App: React.FC = () => {
     state.inventory.some((i) => i.slot === 'weapon' && (!state.equippedWeapon || i.atk > state.equippedWeapon.atk))
   );
 
-  // Hybrid Game Loop: 60 FPS rAF when active, low-CPU interval when in background
+  // Controlled Game Loop: 100ms ticks (10 ticks/s) for balanced, readable ZPG combat
   useEffect(() => {
     let lastTime = performance.now();
-    let animFrameId: number | null = null;
-    let bgIntervalId: ReturnType<typeof setInterval> | null = null;
-
-    const runTick = () => {
+    const interval = setInterval(() => {
       const now = performance.now();
       const rawDelta = (now - lastTime) / 1000;
       lastTime = now;
-      // Cap delta time to prevent massive jumps after browser hiccups
+      // Cap delta time to prevent massive jumps when switching tabs
       const deltaSec = Math.min(rawDelta, 0.25);
       if (deltaSec > 0) {
         tick(deltaSec);
       }
-    };
+    }, 100);
 
-    const startVisibleLoop = () => {
-      if (bgIntervalId) {
-        clearInterval(bgIntervalId);
-        bgIntervalId = null;
-      }
-      lastTime = performance.now();
-      const loop = () => {
-        runTick();
-        animFrameId = requestAnimationFrame(loop);
-      };
-      animFrameId = requestAnimationFrame(loop);
-    };
-
-    const startBackgroundLoop = () => {
-      if (animFrameId) {
-        cancelAnimationFrame(animFrameId);
-        animFrameId = null;
-      }
-      lastTime = performance.now();
-      // 4 ticks/sec while in background (low CPU, continuous idle farming)
-      bgIntervalId = setInterval(runTick, 250);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        startBackgroundLoop();
-      } else {
-        startVisibleLoop();
-      }
-    };
-
-    if (document.hidden) {
-      startBackgroundLoop();
-    } else {
-      startVisibleLoop();
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      if (animFrameId) cancelAnimationFrame(animFrameId);
-      if (bgIntervalId) clearInterval(bgIntervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => clearInterval(interval);
   }, [tick]);
 
   return (

@@ -25,7 +25,7 @@ const HeroAvatarPixelInner: React.FC<HeroAvatarPixelProps> = ({
         )}
 
         <img
-          src="/ichigo_hd_transparent.png"
+          src={`${import.meta.env.BASE_URL}ichigo_hd_transparent.png`}
           alt="Ichigo Kurosaki HD Pixel Art"
           className={`w-full h-full object-contain transition-all duration-300 ${
             isDead

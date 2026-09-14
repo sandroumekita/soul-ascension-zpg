@@ -59,6 +59,7 @@ interface GameState {
   playerCurrentHp: number;
   playerMaxHp: number;
   playerDeathTimerSec: number;
+  consecutiveDeaths: number;
   lastSkillUsed: { name: string; isAoE: boolean; timestamp: number } | null;
   lastBankaiUsed: { name: string; durationSec: number; timestamp: number } | null;
   
@@ -330,6 +331,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   skill2Cooldown: 0,
   activeBuff: null,
   playerDeathTimerSec: 0,
+  consecutiveDeaths: 0,
   lastSkillUsed: null,
   lastBankaiUsed: null,
 
@@ -700,6 +702,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       const nextEnemies = spawnEnemiesForBiome(nextBiomeId, state.difficulty, nextStage, nextIsBoss);
 
+      if (state.consecutiveDeaths > 0) {
+        logsToAdd.push({
+          id: uid('log_reset_deaths'),
+          text: `✨ Vitória conquistada! Sequência de derrotas zerada.`,
+          type: 'victory',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+
       set({
         stats: newStats,
         inventory: newInventory,
@@ -712,6 +723,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentEnemies: nextEnemies,
         playerCurrentHp: calc.hp,
         playerMaxHp: calc.hp,
+        consecutiveDeaths: 0,
         skill1Cooldown: newSkill1Cd,
         skill2Cooldown: newSkill2Cd,
         activeBuff: newBuff,
@@ -724,18 +736,34 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    // --- PLAYER DEFEATED (INICIA COOLDOWN DE RECUPERAÇÃO DE 3 SEGUNDOS) ---
+    // --- PLAYER DEFEATED (PENALIDADE PROGRESSIVA DE MORTE E AUTO-ADVANCE OFF SE 3 SEGUIDAS) ---
     if (newPlayerHp <= 0) {
+      const nextConsecutiveDeaths = (state.consecutiveDeaths || 0) + 1;
+      // Tempo base de 3s, aumentando +1.5s por derrota consecutiva, com limite máximo de 8.0s
+      const deathTimer = Math.min(8.0, 3.0 + (nextConsecutiveDeaths - 1) * 1.5);
+      const shouldDisableAuto = nextConsecutiveDeaths >= 3 && state.autoAdvance;
+
       logsToAdd.push({
         id: uid('log_defeat'),
-        text: `💀 Seu Shinigami foi derrotado! Entrando em recuperação espiritual de Reiatsu (3.0s)...`,
+        text: `💀 Derrota #${nextConsecutiveDeaths}! Recuperando Reiatsu em ${deathTimer.toFixed(1)}s (Penalidade ativa)...`,
         type: 'system',
         timestamp: new Date().toLocaleTimeString(),
       });
 
+      if (shouldDisableAuto) {
+        logsToAdd.push({
+          id: uid('log_auto_off'),
+          text: `⚠️ 3 DERROTAS SEGUIDAS! O avanço de Horda Contínua foi DESATIVADO automaticamente para sua proteção.`,
+          type: 'system',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+
       set({
         playerCurrentHp: 0,
-        playerDeathTimerSec: 3.0,
+        playerDeathTimerSec: deathTimer,
+        consecutiveDeaths: nextConsecutiveDeaths,
+        autoAdvance: shouldDisableAuto ? false : state.autoAdvance,
         _hitAccumulator: 0,
         _healAccumulator: 0,
         logs: [...logsToAdd, ...state.logs].slice(0, 30),
@@ -1041,6 +1069,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       biomeStage: targetStage,
       isFightingBoss: isBoss,
+      consecutiveDeaths: 0,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, targetStage, isBoss),
       _hitAccumulator: 0,
       _healAccumulator: 0,
@@ -1053,6 +1082,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentBiomeId: biomeId,
       biomeStage: 1,
       isFightingBoss: false,
+      consecutiveDeaths: 0,
       currentEnemies: spawnEnemiesForBiome(biomeId, difficulty, 1, false),
       _cachedStats: null,
       _hitAccumulator: 0,
@@ -1066,6 +1096,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       difficulty: diff,
       biomeStage: 1,
       isFightingBoss: false,
+      consecutiveDeaths: 0,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, diff, 1, false),
       _cachedStats: null,
       _hitAccumulator: 0,
@@ -1080,6 +1111,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       biomeStage: 10,
       isFightingBoss: true,
+      consecutiveDeaths: 0,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, 10, true),
       _hitAccumulator: 0,
       _healAccumulator: 0,

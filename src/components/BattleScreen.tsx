@@ -78,6 +78,8 @@ export const BattleScreen: React.FC = () => {
     lastSkillUsed,
     lastBankaiUsed,
     activeBuff,
+    consecutiveDeaths,
+    ownedSkills,
   } = useGameStore(useShallow((state) => ({
     currentEnemies: state.currentEnemies,
     playerCurrentHp: state.playerCurrentHp,
@@ -99,12 +101,15 @@ export const BattleScreen: React.FC = () => {
     lastSkillUsed: state.lastSkillUsed,
     lastBankaiUsed: state.lastBankaiUsed,
     activeBuff: state.activeBuff,
+    consecutiveDeaths: state.consecutiveDeaths,
+    ownedSkills: state.ownedSkills,
   })));
 
   // Actions (stable references, won't trigger re-renders)
   const challengeBoss = useGameStore(state => state.challengeBoss);
   const selectStage = useGameStore(state => state.selectStage);
   const toggleAutoAdvance = useGameStore(state => state.toggleAutoAdvance);
+  const equipSkill = useGameStore(state => state.equipSkill);
 
   const [isHitAnimating, setIsHitAnimating] = useState<boolean>(false);
   const [showLogs, setShowLogs] = useState<boolean>(false);
@@ -136,6 +141,9 @@ export const BattleScreen: React.FC = () => {
     () => SKILLS_CATALOG.find((s) => s.id === equippedSlot2SkillId),
     [equippedSlot2SkillId]
   );
+
+  const slot1Skills = useMemo(() => SKILLS_CATALOG.filter(s => s.slotType === 1), []);
+  const slot2Skills = useMemo(() => SKILLS_CATALOG.filter(s => s.slotType === 2), []);
 
   const playerHpPct = Math.max(0, Math.min(100, (playerCurrentHp / playerMaxHp) * 100));
 
@@ -236,13 +244,23 @@ export const BattleScreen: React.FC = () => {
           {/* Overlay Sutil de Morte / Recuperação (apenas dentro do card do personagem) */}
           {playerDeathTimerSec > 0 && (
             <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-40 p-3 pointer-events-none">
-              <div className="bg-slate-950/95 border border-red-500/80 px-4 py-2.5 rounded-xl shadow-2xl flex flex-col items-center gap-1 text-center">
+              <div className="bg-slate-950/95 border border-red-500/80 px-4 py-3 rounded-xl shadow-2xl flex flex-col items-center gap-1.5 text-center max-w-[220px]">
                 <span className="text-[11px] font-mono font-extrabold text-red-400 flex items-center gap-1.5">
-                  💀 Shinigami Derrotado
+                  💀 Shinigami Derrotado {consecutiveDeaths > 1 && `(${consecutiveDeaths}x)`}
                 </span>
                 <span className="text-xs text-slate-300 font-mono">
                   Recuperando em: <strong className="text-red-400 text-sm font-black">{playerDeathTimerSec.toFixed(1)}s</strong>
                 </span>
+                {consecutiveDeaths > 1 && (
+                  <span className="text-[9px] text-amber-400 font-mono bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded">
+                    ⚠️ Penalidade: +{((consecutiveDeaths - 1) * 1.5).toFixed(1)}s (Max: 8s)
+                  </span>
+                )}
+                {consecutiveDeaths >= 3 && (
+                  <span className="text-[9px] text-red-300 font-bold bg-red-950/90 border border-red-700 px-2 py-0.5 rounded animate-pulse">
+                    🛑 Horda Contínua Desativada!
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -449,7 +467,7 @@ export const BattleScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Slots de Habilidade */}
+      {/* Slots de Habilidade / Troca Rápida */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-2">
         {/* Slot 1: Habilidade / Hadō */}
         {(() => {
@@ -465,30 +483,55 @@ export const BattleScreen: React.FC = () => {
                 ? 'bg-black/70 border-purple-950/80 opacity-90'
                 : 'bg-black/60 border-purple-500/40 hover:border-purple-500/70'
             }`}>
-              <div className="flex items-center justify-between w-full">
-                <div>
+              <div className="flex items-center justify-between w-full gap-2">
+                <div className="flex-1 min-w-0">
                   <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
                     <Zap size={11} /> {GAME_THEME.skillSlot1Label}
                   </div>
-                  <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
-                    {skill1Obj ? skill1Obj.name : 'Nenhuma Habilidade Equipada'}
+                  <div className="relative mt-1">
+                    <select
+                      value={equippedSlot1SkillId || ''}
+                      onChange={(e) => equipSkill(e.target.value, 1)}
+                      className="w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-xs sm:text-sm rounded-lg px-2.5 py-1 border border-purple-500/50 hover:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer transition truncate pr-7 appearance-none shadow-inner"
+                      title="Clique para trocar a Habilidade Ativa / Hadō"
+                    >
+                      {slot1Skills.map((s) => {
+                        const isUnlocked = !!ownedSkills[s.id]?.unlocked;
+                        return (
+                          <option
+                            key={s.id}
+                            value={s.id}
+                            disabled={!isUnlocked}
+                            className={isUnlocked ? 'bg-slate-950 text-white font-medium' : 'bg-slate-900 text-slate-500 italic'}
+                          >
+                            {isUnlocked ? `⚡ ${s.name} (CD ${s.cooldownSec}s)` : `🔒 ${s.name} (Bloqueada)`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-400">
+                      <ChevronDown size={13} />
+                    </div>
                   </div>
                 </div>
-                {isSkillRecentlyUsed ? (
-                  <span className="text-[11px] font-black text-purple-200 bg-purple-900 px-2.5 py-1 rounded-lg border border-purple-400 shadow-md animate-bounce">
-                    ⚡ DISPARADA!
-                  </span>
-                ) : skill1Cooldown > 0 ? (
-                  <div className="flex items-center gap-1.5 bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/70 font-mono text-xs font-bold shadow-inner">
-                    <span className="text-[9px] font-black bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
-                    <span>{skill1Cooldown.toFixed(1)}s</span>
-                  </div>
-                ) : (
-                  <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    PRONTO
-                  </span>
-                )}
+
+                <div className="shrink-0">
+                  {isSkillRecentlyUsed ? (
+                    <span className="text-[11px] font-black text-purple-200 bg-purple-900 px-2.5 py-1 rounded-lg border border-purple-400 shadow-md animate-bounce">
+                      ⚡ DISPARADA!
+                    </span>
+                  ) : skill1Cooldown > 0 ? (
+                    <div className="flex items-center gap-1.5 bg-purple-950/90 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/70 font-mono text-xs font-bold shadow-inner">
+                      <span className="text-[9px] font-black bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
+                      <span>{skill1Cooldown.toFixed(1)}s</span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-500 shadow-md flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      PRONTO
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Barra de Recarga (CD Progress) */}
@@ -523,30 +566,55 @@ export const BattleScreen: React.FC = () => {
                 ? 'bg-black/70 border-amber-950/80 opacity-90'
                 : 'bg-black/60 border-amber-500/40 hover:border-amber-500/70'
             }`}>
-              <div className="flex items-center justify-between w-full">
-                <div>
+              <div className="flex items-center justify-between w-full gap-2">
+                <div className="flex-1 min-w-0">
                   <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
                     <Flame size={11} /> {GAME_THEME.skillSlot2Label}
                   </div>
-                  <div className="text-xs sm:text-sm font-extrabold text-white mt-0.5">
-                    {skill2Obj ? skill2Obj.name : 'Nenhuma Bankai Equipada'}
+                  <div className="relative mt-1">
+                    <select
+                      value={equippedSlot2SkillId || ''}
+                      onChange={(e) => equipSkill(e.target.value, 2)}
+                      className="w-full bg-slate-950/90 hover:bg-slate-900 text-white font-extrabold text-xs sm:text-sm rounded-lg px-2.5 py-1 border border-amber-500/50 hover:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer transition truncate pr-7 appearance-none shadow-inner"
+                      title="Clique para trocar a Bankai"
+                    >
+                      {slot2Skills.map((s) => {
+                        const isUnlocked = !!ownedSkills[s.id]?.unlocked;
+                        return (
+                          <option
+                            key={s.id}
+                            value={s.id}
+                            disabled={!isUnlocked}
+                            className={isUnlocked ? 'bg-slate-950 text-white font-medium' : 'bg-slate-900 text-slate-500 italic'}
+                          >
+                            {isUnlocked ? `🔥 ${s.name} (CD ${s.cooldownSec}s)` : `🔒 ${s.name} (Bloqueada)`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-amber-400">
+                      <ChevronDown size={13} />
+                    </div>
                   </div>
                 </div>
-                {isBankaiActive ? (
-                  <span className="text-[11px] font-black text-amber-300 bg-amber-950 px-2.5 py-1 rounded-lg border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
-                    🔥 ATIVA ({activeBuff.durationLeft.toFixed(1)}s)
-                  </span>
-                ) : skill2Cooldown > 0 ? (
-                  <div className="flex items-center gap-1.5 bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500/70 font-mono text-xs font-bold shadow-inner">
-                    <span className="text-[9px] font-black bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
-                    <span>{skill2Cooldown.toFixed(1)}s</span>
-                  </div>
-                ) : (
-                  <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md flex items-center gap-1 animate-pulse">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                    PRONTO
-                  </span>
-                )}
+
+                <div className="shrink-0">
+                  {isBankaiActive ? (
+                    <span className="text-[11px] font-black text-amber-300 bg-amber-950 px-2.5 py-1 rounded-lg border border-amber-400 shadow-lg animate-pulse flex items-center gap-1">
+                      🔥 ATIVA ({activeBuff.durationLeft.toFixed(1)}s)
+                    </span>
+                  ) : skill2Cooldown > 0 ? (
+                    <div className="flex items-center gap-1.5 bg-amber-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500/70 font-mono text-xs font-bold shadow-inner">
+                      <span className="text-[9px] font-black bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded tracking-wider">CD</span>
+                      <span>{skill2Cooldown.toFixed(1)}s</span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] font-bold text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500 shadow-md flex items-center gap-1 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      PRONTO
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Barra de Recarga (CD Progress) */}

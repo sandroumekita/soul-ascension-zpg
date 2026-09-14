@@ -233,24 +233,9 @@ export const BattleScreen: React.FC = () => {
         } flex flex-col items-center justify-between relative overflow-hidden min-h-[300px]`}>
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-600/10 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Notificação Sutil de Bankai (apenas dentro do card do personagem) */}
-          {lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2000 && (
-            <div className="absolute top-11 z-30 pointer-events-none flex items-center gap-1 bg-amber-950/90 border border-amber-400/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-amber-300 shadow-md animate-bounce">
-              <span>🔥 卍解 · {lastBankaiUsed.name}</span>
-            </div>
-          )}
-
-          {/* Notificação Sutil de Habilidade (apenas dentro do card do personagem) */}
-          {lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500 && (
-            <div className="absolute top-11 z-30 pointer-events-none flex items-center gap-1 bg-purple-950/90 border border-purple-400/80 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-purple-200 shadow-md animate-bounce">
-              <Zap size={11} className="text-purple-300" />
-              <span>{lastSkillUsed.name}</span>
-            </div>
-          )}
-
           {/* Overlay Sutil de Morte / Recuperação (apenas dentro do card do personagem) */}
           {playerDeathTimerSec > 0 && (
-            <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-30 p-3 pointer-events-none">
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-40 p-3 pointer-events-none">
               <div className="bg-slate-950/95 border border-red-500/80 px-4 py-2.5 rounded-xl shadow-2xl flex flex-col items-center gap-1 text-center">
                 <span className="text-[11px] font-mono font-extrabold text-red-400 flex items-center gap-1.5">
                   💀 Shinigami Derrotado
@@ -262,22 +247,34 @@ export const BattleScreen: React.FC = () => {
             </div>
           )}
 
+          {/* Header do Card do Herói */}
           <div className="w-full flex justify-between items-center mb-2 z-10">
-            <span className="font-extrabold text-cyan-300 text-sm sm:text-base flex items-center gap-1.5">
-              <Sparkles size={16} className="text-cyan-400" /> {GAME_THEME.heroTitle}
-              {activeBuff && (
-                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded-full font-bold animate-pulse flex items-center gap-1">
-                  🔥 BANKAI ({activeBuff.durationLeft.toFixed(0)}s)
-                </span>
-              )}
+            <span className="font-extrabold text-cyan-300 text-xs sm:text-sm flex items-center gap-1.5 truncate">
+              <Sparkles size={15} className="text-cyan-400 shrink-0" />
+              <span className="truncate">{GAME_THEME.heroTitle}</span>
             </span>
-            <span className={`text-xs font-mono px-2 py-0.5 rounded border font-bold ${
+            <span className={`text-xs font-mono px-2 py-0.5 rounded border font-bold shrink-0 ${
               playerDeathTimerSec > 0
                 ? 'text-red-400 bg-red-950/80 border-red-700 animate-pulse'
                 : 'text-cyan-200 bg-cyan-950/60 border-cyan-800'
             }`}>
               {playerCurrentHp} / {playerMaxHp} HP
             </span>
+          </div>
+
+          {/* Notificações de Ativação (Empilhadas verticalmente, sem colisão entre si ou com o header) */}
+          <div className="absolute top-12 inset-x-0 flex flex-col items-center gap-1.5 z-30 pointer-events-none px-3">
+            {lastBankaiUsed && Date.now() - lastBankaiUsed.timestamp < 2000 && (
+              <div className="flex items-center gap-1.5 bg-amber-950/95 border border-amber-400/90 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold text-amber-300 shadow-xl animate-bounce backdrop-blur-md">
+                <span>🔥 卍解 · {lastBankaiUsed.name.replace(/^Bankai:\s*/i, '')}</span>
+              </div>
+            )}
+            {lastSkillUsed && Date.now() - lastSkillUsed.timestamp < 1500 && (
+              <div className="flex items-center gap-1 bg-purple-950/95 border border-purple-400/90 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold text-purple-200 shadow-xl animate-bounce backdrop-blur-md">
+                <Zap size={11} className="text-purple-300 shrink-0" />
+                <span>{lastSkillUsed.name}</span>
+              </div>
+            )}
           </div>
 
           {/* Avatar HD Transparente do Herói */}

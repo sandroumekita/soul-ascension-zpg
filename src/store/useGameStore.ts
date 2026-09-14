@@ -429,19 +429,41 @@ export const useGameStore = create<GameState>()(
     if (state.playerDeathTimerSec > 0) {
       const remainingDeathTimer = Math.max(0, state.playerDeathTimerSec - deltaTimeSec);
       if (remainingDeathTimer === 0) {
-        // Recovery complete after 3 seconds: retreat to fallback stage and restore HP
-        const fallbackStage = state.biomeStage === 10 ? 9 : Math.max(1, state.biomeStage - 1);
-        const nextEnemies = spawnEnemiesForBiome(state.currentBiomeId, state.difficulty, fallbackStage, false);
+        // Recovery complete after death timer:
+        const wasAtBoss = state.biomeStage === 10 || state.isFightingBoss;
+        let nextStage = Math.max(1, state.biomeStage - 1);
+        let nextIsBoss = false;
+        let updatedStats = { ...state.stats };
+        let recoveryMsg = `⚡ Recuperado! Voltando pra Fase ${nextStage}.`;
+
+        if (wasAtBoss) {
+          // If player was fighting the Boss and has Auto-Advance ON and has keys:
+          if (state.autoAdvance && (updatedStats.bossKeys || 0) >= 1) {
+            nextStage = 10;
+            nextIsBoss = true;
+            updatedStats.bossKeys -= 1;
+            recoveryMsg = `⚡ Recuperado! 🔄 Automático: Desafiando o Boss novamente! (-1 🗝️, restam ${updatedStats.bossKeys})`;
+          } else {
+            nextStage = 9;
+            nextIsBoss = false;
+            recoveryMsg = state.autoAdvance
+              ? `⚡ Recuperado! Sem Chaves do Boss 🗝️. Voltando pra Fase 9 para farmar.`
+              : `⚡ Recuperado! Voltando pra Fase 9.`;
+          }
+        }
+
+        const nextEnemies = spawnEnemiesForBiome(state.currentBiomeId, state.difficulty, nextStage, nextIsBoss);
         const recoveryLog: BattleLogMessage = {
           id: uid('log_respawn'),
-          text: `⚡ Recuperado! Voltando pra Fase ${fallbackStage}.`,
+          text: recoveryMsg,
           type: 'system',
           timestamp: new Date().toLocaleTimeString(),
         };
 
         set({
-          biomeStage: fallbackStage,
-          isFightingBoss: false,
+          stats: updatedStats,
+          biomeStage: nextStage,
+          isFightingBoss: nextIsBoss,
           currentEnemies: nextEnemies,
           playerCurrentHp: calc.hp,
           playerMaxHp: calc.hp,
@@ -651,8 +673,8 @@ export const useGameStore = create<GameState>()(
         });
       }
 
-      // Boss Key drop chance (25% per horde in stages 1-9)
-      if (!wasBossDefeated && Math.random() < 0.25) {
+      // Boss Key drop chance (5% per horde in stages 1-9 instead of 25%)
+      if (!wasBossDefeated && Math.random() < 0.05) {
         newStats.bossKeys = (newStats.bossKeys || 0) + 1;
         logsToAdd.push({
           id: uid('log_boss_key'),
@@ -730,28 +752,25 @@ export const useGameStore = create<GameState>()(
           timestamp: new Date().toLocaleTimeString(),
         });
 
+        // Libera próximo mapa caso ainda não tenha sido liberado
         const currentBiomeIdx = BIOMES_CATALOG.findIndex((b) => b.id === state.currentBiomeId);
         if (currentBiomeIdx < BIOMES_CATALOG.length - 1) {
           const nextBiomeObj = BIOMES_CATALOG[currentBiomeIdx + 1];
-          nextBiomeId = nextBiomeObj.id;
-          nextStage = 1;
-          const nextBiomeKey = `${nextBiomeId}_${state.difficulty}`;
+          const nextBiomeKey = `${nextBiomeObj.id}_${state.difficulty}`;
           if (!newMaxUnlockedStages[nextBiomeKey]) {
             newMaxUnlockedStages[nextBiomeKey] = 1;
           }
-          if (!newUnlockedBiomes.includes(nextBiomeId)) {
-            newUnlockedBiomes.push(nextBiomeId);
+          if (!newUnlockedBiomes.includes(nextBiomeObj.id)) {
+            newUnlockedBiomes.push(nextBiomeObj.id);
+            logsToAdd.push({
+              id: uid('log_unlock_biome'),
+              text: `🔓 Novo mapa liberado: ${nextBiomeObj.name}!`,
+              type: 'system',
+              timestamp: new Date().toLocaleTimeString(),
+            });
           }
-          logsToAdd.push({
-            id: uid('log_unlock_biome'),
-            text: `🔓 Novo mapa liberado: ${nextBiomeObj.name}!`,
-            type: 'system',
-            timestamp: new Date().toLocaleTimeString(),
-          });
         } else {
-          nextStage = 10;
-          nextIsBoss = true;
-
+          // Último bioma concluído: desbloqueia nova dificuldade
           const diffsOrder: Difficulty[] = ['normal', 'hard', 'nightmare', 'hell'];
           const currentDiffIdx = diffsOrder.indexOf(state.difficulty);
           if (currentDiffIdx < diffsOrder.length - 1) {
@@ -767,13 +786,61 @@ export const useGameStore = create<GameState>()(
             }
           }
         }
+
+        // Sistema de Farm Contínuo do Boss no Modo Automático
+        if (state.autoAdvance) {
+          if ((newStats.bossKeys || 0) >= 1) {
+            nextStage = 10;
+            nextIsBoss = true;
+            nextBiomeId = state.currentBiomeId;
+            newStats.bossKeys -= 1;
+            logsToAdd.push({
+              id: uid('log_boss_repeat'),
+              text: `🔄 Automático: Desafiando o Boss novamente! (-1 🗝️, restam ${newStats.bossKeys})`,
+              type: 'system',
+              timestamp: new Date().toLocaleTimeString(),
+            });
+          } else {
+            nextStage = 9;
+            nextIsBoss = false;
+            nextBiomeId = state.currentBiomeId;
+            logsToAdd.push({
+              id: uid('log_boss_out_keys'),
+              text: `🗝️ Chaves do Boss esgotadas! Voltando pra Fase 9 para farmar.`,
+              type: 'system',
+              timestamp: new Date().toLocaleTimeString(),
+            });
+          }
+        } else {
+          nextStage = 9;
+          nextIsBoss = false;
+          nextBiomeId = state.currentBiomeId;
+        }
       } else {
-        // Normal stage defeated: unlock next stage!
+        // Fase normal derrotada: desbloqueia a próxima fase
         const prevUnlocked = newMaxUnlockedStages[currentBiomeKey] || 1;
         newMaxUnlockedStages[currentBiomeKey] = Math.max(prevUnlocked, Math.min(10, state.biomeStage + 1));
 
         if (state.autoAdvance) {
-          nextStage = Math.min(9, state.biomeStage + 1);
+          if (state.biomeStage === 9) {
+            // Ao vencer a fase 9 no automático: avança para o Boss se tiver chaves
+            if ((newStats.bossKeys || 0) >= 1) {
+              nextStage = 10;
+              nextIsBoss = true;
+              newStats.bossKeys -= 1;
+              logsToAdd.push({
+                id: uid('log_auto_enter_boss'),
+                text: `🗝️ Avanço Automático: Entrando no Boss da Fase 10! (-1 🗝️, restam ${newStats.bossKeys})`,
+                type: 'system',
+                timestamp: new Date().toLocaleTimeString(),
+              });
+            } else {
+              nextStage = 9;
+              nextIsBoss = false;
+            }
+          } else {
+            nextStage = Math.min(9, state.biomeStage + 1);
+          }
         } else {
           nextStage = state.biomeStage;
         }
@@ -1153,14 +1220,15 @@ export const useGameStore = create<GameState>()(
   },
 
   selectStage: (targetStage: number) => {
-    const { currentBiomeId, difficulty, maxUnlockedStagePerBiome } = get();
+    const { currentBiomeId, difficulty, biomeStage, maxUnlockedStagePerBiome } = get();
     if (targetStage < 1 || targetStage > 10) return;
 
     const currentKey = `${currentBiomeId}_${difficulty}`;
     const maxUnlocked = maxUnlockedStagePerBiome?.[currentKey] ?? 1;
 
-    // Só é permitido avançar para a fase se o jogador já venceu as anteriores
-    if (targetStage > maxUnlocked) return;
+    // Só é permitido avançar se a fase já foi conquistada ou se for o Boss a partir da fase 9
+    const canAccess = targetStage <= maxUnlocked || (targetStage === 10 && biomeStage >= 9);
+    if (!canAccess) return;
 
     // A fase 10 é a sala do Boss que consome 1x Chave do Boss
     if (targetStage === 10) {
@@ -1207,13 +1275,18 @@ export const useGameStore = create<GameState>()(
   },
 
   challengeBoss: () => {
-    const { currentBiomeId, difficulty, biomeStage, stats, logs, maxUnlockedStagePerBiome } = get();
+    const { currentBiomeId, difficulty, biomeStage, isFightingBoss, stats, logs, maxUnlockedStagePerBiome } = get();
     const currentKey = `${currentBiomeId}_${difficulty}`;
     const maxUnlocked = maxUnlockedStagePerBiome?.[currentKey] ?? 1;
 
+    // Se já estiver em combate ativo contra o Boss da Fase 10, não duplica cobrança
+    if (isFightingBoss && biomeStage === 10) {
+      return;
+    }
+
     // Só pode desafiar se já tiver liberado a fase 10 ou estiver no estágio 9
     if (maxUnlocked < 10 && biomeStage < 9) return;
-    if (stats.bossKeys < 1) {
+    if ((stats.bossKeys || 0) < 1) {
       const noKeyLog: BattleLogMessage = {
         id: uid('log_no_key'),
         text: '⚠️ Precisa de 1 Chave do Boss 🗝️! Derrote Hollows nas fases 1 a 9 para pegar.',
@@ -1224,9 +1297,10 @@ export const useGameStore = create<GameState>()(
       return;
     }
 
+    const nextKeys = stats.bossKeys - 1;
     const bossLog: BattleLogMessage = {
       id: uid('log_enter_boss'),
-      text: `🗝️ Entrando no Boss! (-1 🗝️). Boa sorte!`,
+      text: `🗝️ Desafiando o Boss da Fase 10! (-1 🗝️, restam ${nextKeys}). Boa sorte!`,
       type: 'system',
       timestamp: new Date().toLocaleTimeString(),
     };
@@ -1234,7 +1308,7 @@ export const useGameStore = create<GameState>()(
     set({
       biomeStage: 10,
       isFightingBoss: true,
-      stats: { ...stats, bossKeys: stats.bossKeys - 1 },
+      stats: { ...stats, bossKeys: nextKeys },
       consecutiveDeaths: 0,
       currentEnemies: spawnEnemiesForBiome(currentBiomeId, difficulty, 10, true),
       _hitAccumulator: 0,

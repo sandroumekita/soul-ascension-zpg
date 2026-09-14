@@ -263,8 +263,8 @@ export const BattleScreen: React.FC = () => {
           {STAGE_NUMBERS.map((stageNum) => {
             const isCompleted = stageNum < maxUnlockedStage;
             const isCurrent = stageNum === biomeStage;
-            const isUnlocked = stageNum <= maxUnlockedStage;
             const isBoss = stageNum === 10;
+            const isUnlocked = stageNum <= maxUnlockedStage || (isBoss && biomeStage >= 9);
 
             return (
               <button
@@ -283,12 +283,16 @@ export const BattleScreen: React.FC = () => {
                 title={
                   !isUnlocked
                     ? isBoss
-                      ? 'Boss (Bloqueado - Vença a Fase 9 primeiro)'
+                      ? 'Boss (Bloqueado - Chegue na Fase 9 primeiro)'
                       : `Fase ${stageNum} (Bloqueada - Vença a Fase ${stageNum - 1} primeiro)`
                     : isCurrent
-                    ? `Fase ${stageNum} (Atual)`
+                    ? isBoss
+                      ? 'Boss da Fase 10 (Em combate!)'
+                      : `Fase ${stageNum} (Atual)`
                     : isBoss
-                    ? 'Desafiar Boss (Fase 10)'
+                    ? bossKeys > 0
+                      ? `Desafiar Boss da Fase 10! (Consome 1 🗝️ - Você possui ${bossKeys})`
+                      : `Boss da Fase 10 (Requer 1 🗝️ - Você possui 0)`
                     : `Ir para a Fase ${stageNum}`
                 }
               >
@@ -490,6 +494,10 @@ export const BattleScreen: React.FC = () => {
                       {isDead ? (
                         <span className="text-[7px] sm:text-[9px] bg-red-600 text-white px-1 py-0.2 rounded font-mono font-black shrink-0 animate-bounce shadow-md">
                           💀
+                        </span>
+                      ) : enemy.isBoss ? (
+                        <span className="text-[7px] sm:text-[8px] bg-red-600 text-amber-200 px-1 py-0.2 rounded font-mono font-black shrink-0 border border-amber-400 shadow-sm animate-pulse">
+                          👑 CHEFE
                         </span>
                       ) : isCurrentTarget ? (
                         <span className="text-[7px] sm:text-[9px] bg-red-900 text-white px-1 py-0.2 rounded font-mono shrink-0">
